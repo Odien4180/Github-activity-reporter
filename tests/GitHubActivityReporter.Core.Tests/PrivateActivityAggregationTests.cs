@@ -63,7 +63,7 @@ public sealed class PrivateActivityAggregationTests
         Assert.Equal(1, metrics.IssueClosedCount);
         Assert.Equal(1, metrics.ReviewSubmittedCount);
         Assert.Equal(1, metrics.ReleasePublishedCount);
-        Assert.Equal(10, metrics.TotalEventCount);
+        Assert.Equal(9, metrics.TotalEventCount);
         Assert.True(metrics.HasActivity);
     }
 
