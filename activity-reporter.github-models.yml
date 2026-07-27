@@ -8,9 +8,8 @@ github:
   token_secret_name: ACTIVITY_REPORTER_GITHUB_TOKEN
 collection:
   period:
-    mode: custom
+    mode: last24-hours
     initial_lookback: 24h
-    custom_lookback: 7d
   public:
     enabled: true
     event_types:
