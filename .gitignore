@@ -1,0 +1,31 @@
+# .NET build output
+**/bin/
+**/obj/
+TestResults/
+coverage/
+coverage.*
+*.nupkg
+*.snupkg
+
+# GitHub Activity Reporter runtime output
+.activity-reporter/
+artifacts/
+.scratch/
+
+# IDE and user-specific files
+.vs/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Local environment files and secrets
+.env
+.env.*
+!.env.example
+
+# Operating system files
+.DS_Store
+Thumbs.db
+Desktop.ini
