@@ -41,8 +41,11 @@ public sealed class WorkflowGeneratorTests
         Assert.Contains("uses: actions/upload-pages-artifact@v4", workflow, StringComparison.Ordinal);
         Assert.Contains("path: artifacts/pages", workflow, StringComparison.Ordinal);
         Assert.Contains("uses: actions/deploy-pages@v4", workflow, StringComparison.Ordinal);
+        Assert.Contains("deploy-pages:\n    needs: update-activity-report", workflow, StringComparison.Ordinal);
         Assert.Contains("name: github-pages", workflow, StringComparison.Ordinal);
         Assert.Contains("url: ${{ steps.deployment.outputs.page_url }}", workflow, StringComparison.Ordinal);
+        Assert.Equal(1, CountOccurrences(workflow, "uses: actions/upload-pages-artifact@v4"));
+        Assert.Equal(1, CountOccurrences(workflow, "uses: actions/deploy-pages@v4"));
     }
 
     [Fact]
@@ -122,4 +125,7 @@ public sealed class WorkflowGeneratorTests
         Directory.CreateDirectory(path);
         return path;
     }
+
+    private static int CountOccurrences(string value, string search)
+        => value.Split(search, StringSplitOptions.None).Length - 1;
 }

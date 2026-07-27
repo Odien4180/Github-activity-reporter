@@ -23,10 +23,6 @@ public static class WorkflowTemplate
 
         permissions:
           contents: read
-        {{- if github_pages_enabled }}
-          pages: write
-          id-token: write
-        {{- end }}
         {{- if ai_summary_enabled && ai_provider == "github-models" }}
           models: read
         {{- end }}
@@ -38,11 +34,6 @@ public static class WorkflowTemplate
         jobs:
           update-activity-report:
             runs-on: ubuntu-latest
-        {{- if github_pages_enabled }}
-            environment:
-              name: github-pages
-              url: ${{ '{{' }} steps.deployment.outputs.page_url {{ '}}' }}
-        {{- end }}
 
             steps:
               - name: Checkout reporter source
@@ -121,6 +112,17 @@ public static class WorkflowTemplate
                 with:
                   path: {{ github_pages_output_directory }}
 
+          deploy-pages:
+            needs: update-activity-report
+            runs-on: ubuntu-latest
+            permissions:
+              pages: write
+              id-token: write
+            environment:
+              name: github-pages
+              url: ${{ '{{' }} steps.deployment.outputs.page_url {{ '}}' }}
+
+            steps:
               - name: Deploy GitHub Pages
                 id: deployment
                 uses: actions/deploy-pages@v4

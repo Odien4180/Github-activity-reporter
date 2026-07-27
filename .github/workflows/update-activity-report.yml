@@ -10,8 +10,6 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
   models: read
 
 concurrency:
@@ -21,9 +19,6 @@ concurrency:
 jobs:
   update-activity-report:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
       - name: Checkout reporter source
@@ -89,6 +84,17 @@ jobs:
         with:
           path: artifacts/pages
 
+  deploy-pages:
+    needs: update-activity-report
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
       - name: Deploy GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
