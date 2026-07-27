@@ -2,6 +2,7 @@ using GitHubActivityReporter.Core.Abstractions;
 using GitHubActivityReporter.Core.Configuration;
 using GitHubActivityReporter.Core.Models;
 using GitHubActivityReporter.Rendering.Html;
+using GitHubActivityReporter.Rendering.Markdown;
 using GitHubActivityReporter.Rendering.Svg;
 
 namespace GitHubActivityReporter.Rendering.Tests;
@@ -91,8 +92,24 @@ public sealed class Phase2RendererTests
         var artifact = Assert.Single(rendered.Artifacts);
         Assert.Equal(RenderedArtifactKind.Svg, artifact.Kind);
         Assert.Equal("generated/activity-dashboard.svg", artifact.RelativePath);
-        Assert.Contains("Development Activity", artifact.Content, StringComparison.Ordinal);
+        Assert.Contains("Development Pulse", artifact.Content, StringComparison.Ordinal);
         Assert.Contains("viewBox=", artifact.Content, StringComparison.Ordinal);
+        Assert.Contains("linearGradient id=\"accent\"", artifact.Content, StringComparison.Ordinal);
+        Assert.Contains("prefers-color-scheme: dark", artifact.Content, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Markdown_renderer_embeds_dashboard_and_metric_overview()
+    {
+        var report = CreateReport();
+        var context = CreateContext();
+
+        var markdown = new MarkdownReportRenderer().Render(report, context);
+
+        Assert.Contains("## Development Pulse", markdown, StringComparison.Ordinal);
+        Assert.Contains("<img src=\"./generated/activity-dashboard.svg\"", markdown, StringComparison.Ordinal);
+        Assert.Contains("| Public repositories | Public commits | Private repositories | Private commits |", markdown, StringComparison.Ordinal);
+        Assert.Contains("#### [example/public-tool](https://github.com/example/public-tool)", markdown, StringComparison.Ordinal);
     }
 
     [Fact]

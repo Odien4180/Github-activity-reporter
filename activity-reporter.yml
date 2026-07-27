@@ -82,7 +82,7 @@ outputs:
     renderer: normalized-json
     target: generated/report.json
   dashboard:
-    enabled: false
+    enabled: true
     renderer: svg-dashboard
     target: generated/activity-dashboard.svg
   website:

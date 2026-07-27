@@ -69,7 +69,7 @@ public sealed class PrivateDataLeakTests
 
         var svg = new SvgDashboardRenderer().Render(report, context);
 
-        Assert.Contains("Development Activity", svg, StringComparison.Ordinal);
+        Assert.Contains("GITHUB ACTIVITY", svg, StringComparison.Ordinal);
         foreach (var forbidden in SampleActivity.PrivateStrings)
         {
             Assert.DoesNotContain(forbidden, svg, StringComparison.OrdinalIgnoreCase);
