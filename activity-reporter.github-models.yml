@@ -76,7 +76,7 @@ summary:
   ai:
     provider: github-models
     model: openai/gpt-4.1
-    api_key_secret_name: GH_MODELS_TOKEN
+    api_key_secret_name: GITHUB_TOKEN
     include_public_commit_messages: true
     max_input_events: 50
     max_input_characters: 10000
