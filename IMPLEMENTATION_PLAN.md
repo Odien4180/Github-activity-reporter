@@ -16,9 +16,9 @@
 
 ## Phase 2: Dashboard and Web
 
-- [ ] SVG dashboard renderer
-- [ ] Static HTML renderer
-- [ ] Activity history JSON and trend views
+- [x] SVG dashboard renderer
+- [x] Static HTML renderer
+- [x] Activity history JSON and trend views
 - [ ] GitHub Pages publisher
 - [ ] Snapshot tests for SVG/HTML outputs
 
@@ -40,4 +40,4 @@
 ## Current focus
 
 - [x] Fix failing private aggregation expectation test (`TotalEventCount`)
-- [ ] Run and keep full test suite green while continuing feature work
+- [x] Run and keep full test suite green while continuing feature work
