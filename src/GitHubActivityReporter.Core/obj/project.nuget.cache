@@ -1,11 +1,13 @@
 {
   "version": 2,
-  "dgSpecHash": "9D2q27PhfsQ=",
+  "dgSpecHash": "mWQjQL1s4+I=",
   "success": true,
   "projectFilePath": "/home/runner/work/Github-activity-reporter/Github-activity-reporter/src/GitHubActivityReporter.Core/GitHubActivityReporter.Core.csproj",
   "expectedPackageFiles": [
-    "/home/runner/.nuget/packages/fluentvalidation/12.1.1/fluentvalidation.12.1.1.nupkg.sha512",
-    "/home/runner/.nuget/packages/yamldotnet/18.1.0/yamldotnet.18.1.0.nupkg.sha512"
+    "/tmp/codeql-scratch-9aa2d5e6e776dd38/dbs/csharp/working/packages/fluentvalidation/12.1.1/fluentvalidation.12.1.1.nupkg.sha512",
+    "/tmp/codeql-scratch-9aa2d5e6e776dd38/dbs/csharp/working/packages/yamldotnet/18.1.0/yamldotnet.18.1.0.nupkg.sha512",
+    "/tmp/codeql-scratch-9aa2d5e6e776dd38/dbs/csharp/working/packages/microsoft.netcore.app.ref/10.0.9/microsoft.netcore.app.ref.10.0.9.nupkg.sha512",
+    "/tmp/codeql-scratch-9aa2d5e6e776dd38/dbs/csharp/working/packages/microsoft.aspnetcore.app.ref/10.0.9/microsoft.aspnetcore.app.ref.10.0.9.nupkg.sha512"
   ],
   "logs": []
 }
