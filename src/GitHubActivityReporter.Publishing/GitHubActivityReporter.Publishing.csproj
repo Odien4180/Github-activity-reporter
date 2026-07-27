@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>GitHubActivityReporter.Publishing</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\GitHubActivityReporter.Core\GitHubActivityReporter.Core.csproj" />
+  </ItemGroup>
+
+</Project>

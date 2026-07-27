@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>GitHubActivityReporter.Bootstrap</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Scriban" Version="7.2.5" />
+    <PackageReference Include="YamlDotNet" Version="18.1.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\GitHubActivityReporter.Core\GitHubActivityReporter.Core.csproj" />
+  </ItemGroup>
+
+</Project>

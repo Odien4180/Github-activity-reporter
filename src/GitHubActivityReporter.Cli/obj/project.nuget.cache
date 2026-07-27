@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "dgSpecHash": "7sO/4qCmdWg=",
+  "success": true,
+  "projectFilePath": "/home/runner/work/Github-activity-reporter/Github-activity-reporter/src/GitHubActivityReporter.Cli/GitHubActivityReporter.Cli.csproj",
+  "expectedPackageFiles": [
+    "/home/runner/.nuget/packages/fluentvalidation/12.1.1/fluentvalidation.12.1.1.nupkg.sha512",
+    "/home/runner/.nuget/packages/octokit/14.0.0/octokit.14.0.0.nupkg.sha512",
+    "/home/runner/.nuget/packages/scriban/7.2.5/scriban.7.2.5.nupkg.sha512",
+    "/home/runner/.nuget/packages/spectre.console/0.55.0/spectre.console.0.55.0.nupkg.sha512",
+    "/home/runner/.nuget/packages/spectre.console.ansi/0.55.0/spectre.console.ansi.0.55.0.nupkg.sha512",
+    "/home/runner/.nuget/packages/spectre.console.cli/0.55.0/spectre.console.cli.0.55.0.nupkg.sha512",
+    "/home/runner/.nuget/packages/yamldotnet/18.1.0/yamldotnet.18.1.0.nupkg.sha512"
+  ],
+  "logs": []
+}

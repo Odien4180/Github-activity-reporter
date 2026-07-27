@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>GitHubActivityReporter.Cli</RootNamespace>
+    <AssemblyName>github-activity-reporter</AssemblyName>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>github-activity-reporter</ToolCommandName>
+    <PackageId>GitHubActivityReporter</PackageId>
+    <RollForward>Major</RollForward>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Spectre.Console" Version="0.55.0" />
+    <PackageReference Include="Spectre.Console.Cli" Version="0.55.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\GitHubActivityReporter.Bootstrap\GitHubActivityReporter.Bootstrap.csproj" />
+    <ProjectReference Include="..\GitHubActivityReporter.Core\GitHubActivityReporter.Core.csproj" />
+    <ProjectReference Include="..\GitHubActivityReporter.GitHub\GitHubActivityReporter.GitHub.csproj" />
+    <ProjectReference Include="..\GitHubActivityReporter.Publishing\GitHubActivityReporter.Publishing.csproj" />
+    <ProjectReference Include="..\GitHubActivityReporter.Rendering\GitHubActivityReporter.Rendering.csproj" />
+    <ProjectReference Include="..\GitHubActivityReporter.Summarization\GitHubActivityReporter.Summarization.csproj" />
+  </ItemGroup>
+
+</Project>

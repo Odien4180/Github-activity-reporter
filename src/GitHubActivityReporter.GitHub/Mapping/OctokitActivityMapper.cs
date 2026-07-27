@@ -1,0 +1,173 @@
+using GitHubActivityReporter.Core.Models;
+using GitHubActivityReporter.GitHub.Api;
+using Octokit;
+
+namespace GitHubActivityReporter.GitHub.Mapping;
+
+/// <summary>Maps Octokit activity feed entries to normalised raw events.</summary>
+internal static class OctokitActivityMapper
+{
+    public static IEnumerable<GitHubRawEvent> Map(Activity activity)
+    {
+        ArgumentNullException.ThrowIfNull(activity);
+
+        var repositoryName = activity.Repo?.Name;
+        if (string.IsNullOrWhiteSpace(repositoryName))
+        {
+            yield break;
+        }
+
+        var isPrivate = !activity.Public;
+        var occurredAt = activity.CreatedAt;
+        var id = string.IsNullOrWhiteSpace(activity.Id) ? Guid.NewGuid().ToString("N") : activity.Id;
+
+        switch (activity.Type)
+        {
+            case "PushEvent":
+                foreach (var mapped in MapPush(activity, id, repositoryName!, isPrivate, occurredAt))
+                {
+                    yield return mapped;
+                }
+
+                break;
+
+            case "PullRequestEvent":
+                if (activity.Payload is PullRequestEventPayload pullRequest)
+                {
+                    var type = ResolvePullRequestType(pullRequest);
+                    if (type is not null)
+                    {
+                        yield return new GitHubRawEvent
+                        {
+                            Id = id,
+                            Type = type.Value,
+                            RepositoryFullName = repositoryName!,
+                            IsPrivateRepository = isPrivate,
+                            OccurredAt = occurredAt,
+                            Title = isPrivate ? null : pullRequest.PullRequest?.Title,
+                            Url = isPrivate ? null : pullRequest.PullRequest?.HtmlUrl
+                        };
+                    }
+                }
+
+                break;
+
+            case "IssuesEvent":
+                if (activity.Payload is IssueEventPayload issue)
+                {
+                    var type = issue.Action switch
+                    {
+                        "opened" => ActivityType.IssueOpened,
+                        "closed" => ActivityType.IssueClosed,
+                        _ => (ActivityType?)null
+                    };
+
+                    if (type is not null)
+                    {
+                        yield return new GitHubRawEvent
+                        {
+                            Id = id,
+                            Type = type.Value,
+                            RepositoryFullName = repositoryName!,
+                            IsPrivateRepository = isPrivate,
+                            OccurredAt = occurredAt,
+                            Title = isPrivate ? null : issue.Issue?.Title,
+                            Url = isPrivate ? null : issue.Issue?.HtmlUrl
+                        };
+                    }
+                }
+
+                break;
+
+            case "PullRequestReviewEvent":
+                yield return new GitHubRawEvent
+                {
+                    Id = id,
+                    Type = ActivityType.ReviewSubmitted,
+                    RepositoryFullName = repositoryName!,
+                    IsPrivateRepository = isPrivate,
+                    OccurredAt = occurredAt,
+                    Title = null,
+                    Url = null
+                };
+
+                break;
+
+            case "ReleaseEvent":
+                if (activity.Payload is ReleaseEventPayload release && release.Action == "published")
+                {
+                    yield return new GitHubRawEvent
+                    {
+                        Id = id,
+                        Type = ActivityType.ReleasePublished,
+                        RepositoryFullName = repositoryName!,
+                        IsPrivateRepository = isPrivate,
+                        OccurredAt = occurredAt,
+                        Title = isPrivate ? null : (release.Release?.Name ?? release.Release?.TagName),
+                        Url = isPrivate ? null : release.Release?.HtmlUrl
+                    };
+                }
+
+                break;
+        }
+    }
+
+    private static IEnumerable<GitHubRawEvent> MapPush(
+        Activity activity,
+        string id,
+        string repositoryName,
+        bool isPrivate,
+        DateTimeOffset occurredAt)
+    {
+        var payload = activity.Payload as PushEventPayload;
+        var commits = payload?.Commits?.ToArray() ?? Array.Empty<Commit>();
+        var count = commits.Length > 0 ? commits.Length : (int)(payload?.Size ?? 0);
+
+        for (var index = 0; index < count; index++)
+        {
+            string? title = null;
+            string? url = null;
+
+            if (!isPrivate && index < commits.Length)
+            {
+                title = FirstLine(commits[index].Message);
+                var sha = commits[index].Sha;
+                if (!string.IsNullOrWhiteSpace(sha))
+                {
+                    // Only the abbreviated sha is kept: full hashes are rejected by the privacy validator.
+                    url = $"https://github.com/{repositoryName}/commit/{sha[..Math.Min(7, sha.Length)]}";
+                }
+            }
+
+            yield return new GitHubRawEvent
+            {
+                Id = $"{id}#{index}",
+                Type = ActivityType.Commit,
+                RepositoryFullName = repositoryName,
+                IsPrivateRepository = isPrivate,
+                OccurredAt = occurredAt,
+                Title = title,
+                Url = url
+            };
+        }
+    }
+
+    private static ActivityType? ResolvePullRequestType(PullRequestEventPayload payload) => payload.Action switch
+    {
+        "opened" => ActivityType.PullRequestOpened,
+        "closed" when payload.PullRequest?.Merged == true => ActivityType.PullRequestMerged,
+        "closed" => ActivityType.PullRequestClosed,
+        _ => null
+    };
+
+    private static string? FirstLine(string? message)
+    {
+        if (string.IsNullOrWhiteSpace(message))
+        {
+            return null;
+        }
+
+        var index = message.IndexOfAny(['\r', '\n']);
+        return (index < 0 ? message : message[..index]).Trim();
+    }
+}
