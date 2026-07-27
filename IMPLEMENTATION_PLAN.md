@@ -39,5 +39,6 @@
 
 ## Current focus
 
-- [x] Fix failing private aggregation expectation test (`TotalEventCount`)
-- [x] Run and keep full test suite green while continuing feature work
+- [ ] Complete the GitHub Pages publisher
+- [ ] Add snapshot tests for SVG and static HTML outputs
+- [ ] Keep deferred work tracked in `UNRESOLVED_ISSUES.md`
