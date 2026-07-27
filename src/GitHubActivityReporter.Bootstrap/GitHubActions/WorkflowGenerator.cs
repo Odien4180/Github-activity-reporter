@@ -17,6 +17,8 @@ public sealed record WorkflowOptions
 
     public string ConfigPath { get; init; } = ReporterConfiguration.DefaultFileName;
 
+    public string ProfileRepositoryPath { get; init; } = "profile-repository";
+
     public string CommitMessage { get; init; } = "chore(profile): update GitHub activity report";
 }
 
@@ -46,6 +48,8 @@ public sealed class WorkflowGenerator
             ["solution_path"] = options.SolutionPath,
             ["cli_project_path"] = options.CliProjectPath,
             ["config_path"] = options.ConfigPath,
+            ["profile_repository"] = configuration.GitHub.ProfileRepository.FullName,
+            ["profile_repository_path"] = options.ProfileRepositoryPath,
             ["token_secret_name"] = configuration.GitHub.TokenSecretName,
             ["commit_message"] = options.CommitMessage,
             ["branch"] = configuration.GitHub.ProfileRepository.Branch

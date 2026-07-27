@@ -9,6 +9,7 @@ internal sealed class OctokitEventSource : IGitHubEventSource
     private readonly IGitHubClient _client;
     private readonly int _maxPages;
     private readonly Dictionary<string, GitHubRepositoryInfo?> _repositoryCache = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, int?> _pushCommitCountCache = new(StringComparer.Ordinal);
 
     public OctokitEventSource(IGitHubClient client, int maxPages = 3)
     {
@@ -41,7 +42,20 @@ internal sealed class OctokitEventSource : IGitHubEventSource
 
             foreach (var activity in activities)
             {
-                results.AddRange(OctokitActivityMapper.Map(activity));
+                int? comparedCommitCount = null;
+                if (activity.CreatedAt >= since
+                    && activity.Type == "PushEvent"
+                    && activity.Payload is PushEventPayload pushPayload)
+                {
+                    comparedCommitCount = await TryGetComparedCommitCountAsync(
+                            activity.Repo?.Name,
+                            pushPayload.Before,
+                            pushPayload.Head,
+                            cancellationToken)
+                        .ConfigureAwait(false);
+                }
+
+                results.AddRange(OctokitActivityMapper.Map(activity, comparedCommitCount));
             }
 
             // The feed is ordered newest first, so we can stop as soon as we passed the window.
@@ -52,6 +66,59 @@ internal sealed class OctokitEventSource : IGitHubEventSource
         }
 
         return results;
+    }
+
+    internal async Task<int?> TryGetComparedCommitCountAsync(
+        string? repositoryFullName,
+        string? before,
+        string? head,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (string.IsNullOrWhiteSpace(repositoryFullName)
+            || string.IsNullOrWhiteSpace(before)
+            || string.IsNullOrWhiteSpace(head))
+        {
+            return null;
+        }
+
+        var separator = repositoryFullName.IndexOf('/');
+        if (separator <= 0 || separator == repositoryFullName.Length - 1)
+        {
+            return null;
+        }
+
+        var cacheKey = $"{repositoryFullName}\n{before}\n{head}";
+        if (_pushCommitCountCache.TryGetValue(cacheKey, out var cached))
+        {
+            return cached;
+        }
+
+        var owner = repositoryFullName[..separator];
+        var name = repositoryFullName[(separator + 1)..];
+
+        try
+        {
+            var comparison = await _client.Repository.Commit
+                .Compare(owner, name, before, head)
+                .ConfigureAwait(false);
+
+            cancellationToken.ThrowIfCancellationRequested();
+            int? count = comparison.TotalCommits > 0 ? comparison.TotalCommits : null;
+            _pushCommitCountCache[cacheKey] = count;
+            return count;
+        }
+        catch (NotFoundException)
+        {
+            _pushCommitCountCache[cacheKey] = null;
+            return null;
+        }
+        catch (ApiException)
+        {
+            _pushCommitCountCache[cacheKey] = null;
+            return null;
+        }
     }
 
     public async Task<GitHubRepositoryInfo?> GetPublicRepositoryAsync(

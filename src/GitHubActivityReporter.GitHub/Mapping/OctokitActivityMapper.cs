@@ -7,7 +7,7 @@ namespace GitHubActivityReporter.GitHub.Mapping;
 /// <summary>Maps Octokit activity feed entries to normalised raw events.</summary>
 internal static class OctokitActivityMapper
 {
-    public static IEnumerable<GitHubRawEvent> Map(Activity activity)
+    public static IEnumerable<GitHubRawEvent> Map(Activity activity, int? comparedCommitCount = null)
     {
         ArgumentNullException.ThrowIfNull(activity);
 
@@ -24,7 +24,13 @@ internal static class OctokitActivityMapper
         switch (activity.Type)
         {
             case "PushEvent":
-                foreach (var mapped in MapPush(activity, id, repositoryName!, isPrivate, occurredAt))
+                foreach (var mapped in MapPush(
+                             activity,
+                             id,
+                             repositoryName!,
+                             isPrivate,
+                             occurredAt,
+                             comparedCommitCount))
                 {
                     yield return mapped;
                 }
@@ -117,11 +123,12 @@ internal static class OctokitActivityMapper
         string id,
         string repositoryName,
         bool isPrivate,
-        DateTimeOffset occurredAt)
+        DateTimeOffset occurredAt,
+        int? comparedCommitCount)
     {
         var payload = activity.Payload as PushEventPayload;
         var commits = payload?.Commits?.ToArray() ?? Array.Empty<Commit>();
-        var count = commits.Length > 0 ? commits.Length : (int)(payload?.Size ?? 0);
+        var count = ResolvePushEventCount(commits.Length, (int)(payload?.Size ?? 0), comparedCommitCount);
 
         for (var index = 0; index < count; index++)
         {
@@ -150,6 +157,31 @@ internal static class OctokitActivityMapper
                 Url = url
             };
         }
+    }
+
+    internal static int ResolvePushEventCount(
+        int includedCommitCount,
+        int reportedSize,
+        int? comparedCommitCount = null)
+    {
+        if (comparedCommitCount is > 0)
+        {
+            return comparedCommitCount.Value;
+        }
+
+        if (includedCommitCount > 0)
+        {
+            return includedCommitCount;
+        }
+
+        if (reportedSize > 0)
+        {
+            return reportedSize;
+        }
+
+        // GitHub may omit both commits and size from Events API push payloads.
+        // Preserve the activity as one opaque commit instead of dropping it.
+        return 1;
     }
 
     private static ActivityType? ResolvePullRequestType(PullRequestEventPayload payload) => payload.Action switch

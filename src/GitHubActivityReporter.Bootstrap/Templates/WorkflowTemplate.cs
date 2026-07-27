@@ -22,7 +22,7 @@ public static class WorkflowTemplate
         {{- end }}
 
         permissions:
-          contents: write
+          contents: read
 
         concurrency:
           group: activity-report
@@ -33,9 +33,18 @@ public static class WorkflowTemplate
             runs-on: ubuntu-latest
 
             steps:
+              - name: Checkout reporter source
+                uses: actions/checkout@v4
+                with:
+                  fetch-depth: 0
+
               - name: Checkout profile repository
                 uses: actions/checkout@v4
                 with:
+                  repository: {{ profile_repository }}
+                  ref: {{ branch }}
+                  path: {{ profile_repository_path }}
+                  token: ${{ '{{' }} secrets.{{ token_secret_name }} {{ '}}' }}
                   fetch-depth: 0
 
               - name: Setup .NET
@@ -52,30 +61,17 @@ public static class WorkflowTemplate
               - name: Test
                 run: dotnet test {{ solution_path }} --configuration Release --no-build
 
-              - name: Generate activity report
+              - name: Configure profile repository Git identity
+                run: |
+                  git -C {{ profile_repository_path }} config user.name "github-actions[bot]"
+                  git -C {{ profile_repository_path }} config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+              - name: Generate and publish activity report
                 env:
                   {{ token_secret_name }}: ${{ '{{' }} secrets.{{ token_secret_name }} {{ '}}' }}
-                run: dotnet run --project {{ cli_project_path }} --configuration Release --no-build -- run --config {{ config_path }}
+                run: dotnet run --project {{ cli_project_path }} --configuration Release --no-build -- run --config {{ config_path }} --profile-path {{ profile_repository_path }} --commit --push --verbose
 
               - name: Validate generated output
-                run: dotnet run --project {{ cli_project_path }} --configuration Release --no-build -- validate --config {{ config_path }}
-
-              - name: Detect changes
-                id: changes
-                run: |
-                  if [ -n "$(git status --porcelain)" ]; then
-                    echo "changed=true" >> "$GITHUB_OUTPUT"
-                  else
-                    echo "changed=false" >> "$GITHUB_OUTPUT"
-                  fi
-
-              - name: Commit and push
-                if: steps.changes.outputs.changed == 'true'
-                run: |
-                  git config user.name "github-actions[bot]"
-                  git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-                  git add -A
-                  git commit -m "{{ commit_message }}"
-                  git push origin HEAD:{{ branch }}
+                run: dotnet run --project {{ cli_project_path }} --configuration Release --no-build -- validate --config {{ config_path }} --path {{ profile_repository_path }}/generated
         """;
 }
