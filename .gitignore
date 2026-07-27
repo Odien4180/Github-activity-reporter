@@ -11,6 +11,7 @@ coverage.*
 .activity-reporter/
 artifacts/
 .scratch/
+profile-repository/
 
 # IDE and user-specific files
 .vs/
