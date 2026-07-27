@@ -1,3 +1,6 @@
+/home/runner/work/Github-activity-reporter/Github-activity-reporter/tests/GitHubActivityReporter.Core.Tests/obj/Debug/net10.0/GitHubActivityReporter.Core.Tests.dll
+/home/runner/work/Github-activity-reporter/Github-activity-reporter/tests/GitHubActivityReporter.Core.Tests/obj/Debug/net10.0/refint/GitHubActivityReporter.Core.Tests.dll
+/home/runner/work/Github-activity-reporter/Github-activity-reporter/tests/GitHubActivityReporter.Core.Tests/obj/Debug/net10.0/GitHubActivityReporter.Core.Tests.pdb
 /home/runner/work/Github-activity-reporter/Github-activity-reporter/tests/GitHubActivityReporter.Core.Tests/bin/Debug/net10.0/.msCoverageSourceRootsMapping_GitHubActivityReporter.Core.Tests
 /home/runner/work/Github-activity-reporter/Github-activity-reporter/tests/GitHubActivityReporter.Core.Tests/bin/Debug/net10.0/CoverletSourceRootsMapping_GitHubActivityReporter.Core.Tests
 /home/runner/work/Github-activity-reporter/Github-activity-reporter/tests/GitHubActivityReporter.Core.Tests/bin/Debug/net10.0/xunit.abstractions.dll
@@ -105,8 +108,5 @@
 /home/runner/work/Github-activity-reporter/Github-activity-reporter/tests/GitHubActivityReporter.Core.Tests/obj/Debug/net10.0/GitHubActivityReporter.Core.Tests.csproj.CoreCompileInputs.cache
 /home/runner/work/Github-activity-reporter/Github-activity-reporter/tests/GitHubActivityReporter.Core.Tests/obj/Debug/net10.0/GitHubActivityReporter.Core.Tests.sourcelink.json
 /home/runner/work/Github-activity-reporter/Github-activity-reporter/tests/GitHubActivityReporter.Core.Tests/obj/Debug/net10.0/GitHubAc.0612AD7B.Up2Date
-/home/runner/work/Github-activity-reporter/Github-activity-reporter/tests/GitHubActivityReporter.Core.Tests/obj/Debug/net10.0/GitHubActivityReporter.Core.Tests.dll
-/home/runner/work/Github-activity-reporter/Github-activity-reporter/tests/GitHubActivityReporter.Core.Tests/obj/Debug/net10.0/refint/GitHubActivityReporter.Core.Tests.dll
-/home/runner/work/Github-activity-reporter/Github-activity-reporter/tests/GitHubActivityReporter.Core.Tests/obj/Debug/net10.0/GitHubActivityReporter.Core.Tests.pdb
 /home/runner/work/Github-activity-reporter/Github-activity-reporter/tests/GitHubActivityReporter.Core.Tests/obj/Debug/net10.0/GitHubActivityReporter.Core.Tests.genruntimeconfig.cache
 /home/runner/work/Github-activity-reporter/Github-activity-reporter/tests/GitHubActivityReporter.Core.Tests/obj/Debug/net10.0/ref/GitHubActivityReporter.Core.Tests.dll
