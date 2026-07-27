@@ -64,9 +64,41 @@ public sealed class ReporterConfigurationValidator : AbstractValidator<ReporterC
             .Equal(false)
             .WithMessage("privacy.private.ai_summary must be false. Private activity is never sent to a summarizer.");
 
-        RuleFor(c => c.Privacy.Public.AiSummary)
-            .Equal(false)
-            .WithMessage("privacy.public.ai_summary is not supported yet (Phase 4). Set it to false.");
+        RuleFor(c => c.Summary.Ai.Provider)
+            .Must(provider => provider is "openai" or "github-models")
+            .When(c => c.Privacy.Public.AiSummary)
+            .WithMessage("summary.ai.provider must be 'openai' or 'github-models'.");
+
+        RuleFor(c => c.Summary.Ai.Model)
+            .NotEmpty()
+            .When(c => c.Privacy.Public.AiSummary)
+            .WithMessage("summary.ai.model is required when public AI summary is enabled.");
+
+        RuleFor(c => c.Summary.Ai.ApiKeySecretName)
+            .NotEmpty()
+            .Matches("^[A-Z][A-Z0-9_]*$")
+            .When(c => c.Privacy.Public.AiSummary)
+            .WithMessage("summary.ai.api_key_secret_name must be an uppercase environment variable name.");
+
+        RuleFor(c => c.Summary.Ai.MaxInputEvents)
+            .InclusiveBetween(1, 500)
+            .When(c => c.Privacy.Public.AiSummary);
+
+        RuleFor(c => c.Summary.Ai.MaxInputCharacters)
+            .InclusiveBetween(100, 100_000)
+            .When(c => c.Privacy.Public.AiSummary);
+
+        RuleFor(c => c.Summary.Ai.MaxOutputTokens)
+            .InclusiveBetween(64, 4_096)
+            .When(c => c.Privacy.Public.AiSummary);
+
+        RuleFor(c => c.Summary.Ai.TimeoutSeconds)
+            .InclusiveBetween(1, 300)
+            .When(c => c.Privacy.Public.AiSummary);
+
+        RuleFor(c => c.Summary.Ai.MaxRetries)
+            .InclusiveBetween(0, 5)
+            .When(c => c.Privacy.Public.AiSummary);
 
         RuleFor(c => c.Summary.Language)
             .Must(l => l is "ko" or "en")
@@ -129,25 +161,50 @@ public sealed class ReporterConfigurationValidator : AbstractValidator<ReporterC
             .When(c => c.Outputs.Website.Enabled)
             .WithMessage("outputs.website.history_days must be between 1 and 365.");
 
+        RuleFor(c => c.Outputs.Email.Renderer)
+            .Equal(KnownRenderers.EmailHtml)
+            .When(c => c.Outputs.Email.Enabled)
+            .WithMessage($"outputs.email.renderer must be '{KnownRenderers.EmailHtml}'.");
+
+        RuleFor(c => c.Outputs.Email.HtmlTarget)
+            .NotEmpty()
+            .When(c => c.Outputs.Email.Enabled)
+            .WithMessage("outputs.email.html_target is required.");
+
+        RuleFor(c => c.Outputs.Email.TextTarget)
+            .NotEmpty()
+            .When(c => c.Outputs.Email.Enabled)
+            .WithMessage("outputs.email.text_target is required.");
+
+        RuleFor(c => c.Outputs.Slack.Renderer)
+            .Equal(KnownRenderers.SlackBlocks)
+            .When(c => c.Outputs.Slack.Enabled)
+            .WithMessage($"outputs.slack.renderer must be '{KnownRenderers.SlackBlocks}'.");
+
+        RuleFor(c => c.Outputs.Slack.Target)
+            .NotEmpty()
+            .When(c => c.Outputs.Slack.Enabled)
+            .WithMessage("outputs.slack.target is required.");
+
+        RuleFor(c => c.Outputs.Website.Enabled)
+            .Equal(true)
+            .When(c => c.Publishers.GitHubPages.Enabled)
+            .WithMessage("outputs.website.enabled must be true when the GitHub Pages publisher is enabled.");
+
+        RuleFor(c => c.Publishers.GitHubPages.OutputDirectory)
+            .NotEmpty()
+            .When(c => c.Publishers.GitHubPages.Enabled)
+            .WithMessage("publishers.github_pages.output_directory is required.");
+
         RuleFor(c => c.Outputs.Email.Enabled)
-            .Equal(false)
-            .WithMessage("outputs.email is not implemented in this version (Phase 3).");
+            .Equal(true)
+            .When(c => c.Publishers.Email.Enabled)
+            .WithMessage("outputs.email.enabled must be true when the email publisher is enabled.");
 
         RuleFor(c => c.Outputs.Slack.Enabled)
-            .Equal(false)
-            .WithMessage("outputs.slack is not implemented in this version (Phase 3).");
-
-        RuleFor(c => c.Publishers.GitHubPages.Enabled)
-            .Equal(false)
-            .WithMessage("publishers.github_pages is not implemented in this version (Phase 2).");
-
-        RuleFor(c => c.Publishers.Email.Enabled)
-            .Equal(false)
-            .WithMessage("publishers.email is not implemented in this version (Phase 3).");
-
-        RuleFor(c => c.Publishers.Slack.Enabled)
-            .Equal(false)
-            .WithMessage("publishers.slack is not implemented in this version (Phase 3).");
+            .Equal(true)
+            .When(c => c.Publishers.Slack.Enabled)
+            .WithMessage("outputs.slack.enabled must be true when the Slack publisher is enabled.");
 
         RuleFor(c => c.Publishers.Local.OutputDirectory)
             .NotEmpty()

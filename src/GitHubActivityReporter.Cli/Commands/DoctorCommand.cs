@@ -193,12 +193,32 @@ public sealed class DoctorCommand : AsyncCommand<ReporterSettings>
                 "The GitHub profile publisher is enabled but the markdown output is disabled.");
         }
 
-        if (configuration.Publishers.Slack.Enabled || configuration.Publishers.Email.Enabled)
+        if (configuration.Publishers.Email.Enabled)
         {
-            yield return new CheckResult(CheckStatus.Warning,
-                "Slack and email publishers are not implemented in this version.");
+            yield return CheckSecret(
+                configuration.Publishers.Email.SecretName,
+                "Email credentials");
+        }
+
+        if (configuration.Publishers.Slack.Enabled)
+        {
+            yield return CheckSecret(
+                configuration.Publishers.Slack.SecretName,
+                "Slack webhook");
+        }
+
+        if (configuration.Privacy.Public.AiSummary)
+        {
+            yield return CheckSecret(
+                configuration.Summary.Ai.ApiKeySecretName,
+                $"AI summary provider ({configuration.Summary.Ai.Provider}) credential");
         }
     }
+
+    private static CheckResult CheckSecret(string secretName, string description)
+        => string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(secretName))
+            ? new CheckResult(CheckStatus.Warning, $"{description} is enabled but environment variable {secretName} is not set.")
+            : new CheckResult(CheckStatus.Ok, $"{description} environment variable is set");
 
     private static async Task<IReadOnlyList<CheckResult>> CheckGeneratedOutputsAsync(
         ReporterConfiguration configuration,
@@ -217,6 +237,27 @@ public sealed class DoctorCommand : AsyncCommand<ReporterSettings>
         if (configuration.Outputs.Json.Enabled)
         {
             targets.Add(configuration.Outputs.Json.Target);
+        }
+
+        if (configuration.Outputs.Dashboard.Enabled)
+        {
+            targets.Add(configuration.Outputs.Dashboard.Target);
+        }
+
+        if (configuration.Outputs.Website.Enabled)
+        {
+            targets.Add(Path.Combine(configuration.Outputs.Website.OutputDirectory, "index.html"));
+        }
+
+        if (configuration.Outputs.Email.Enabled)
+        {
+            targets.Add(configuration.Outputs.Email.HtmlTarget);
+            targets.Add(configuration.Outputs.Email.TextTarget);
+        }
+
+        if (configuration.Outputs.Slack.Enabled)
+        {
+            targets.Add(configuration.Outputs.Slack.Target);
         }
 
         foreach (var target in targets)

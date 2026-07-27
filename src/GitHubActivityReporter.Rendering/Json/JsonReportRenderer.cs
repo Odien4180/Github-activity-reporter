@@ -65,6 +65,11 @@ public sealed class JsonReportRenderer : IReportRenderer
             Public = new PublicSection
             {
                 Totals = MapMetrics(report.PublicTotals),
+                Narrative = new NarrativeDocument
+                {
+                    Headline = report.PublicNarrative.Headline,
+                    Highlights = report.PublicNarrative.Highlights
+                },
                 Repositories = report.PublicActivities
                     .Select((activity, index) => MapRepository(activity, index, privacy.Public))
                     .ToArray()
@@ -151,7 +156,14 @@ public sealed class JsonReportRenderer : IReportRenderer
     private sealed record PublicSection
     {
         [JsonPropertyName("totals")] public required MetricsDocument Totals { get; init; }
+        [JsonPropertyName("narrative")] public required NarrativeDocument Narrative { get; init; }
         [JsonPropertyName("repositories")] public required IReadOnlyList<RepositoryDocument> Repositories { get; init; }
+    }
+
+    private sealed record NarrativeDocument
+    {
+        [JsonPropertyName("headline")] public string? Headline { get; init; }
+        [JsonPropertyName("highlights")] public IReadOnlyList<string> Highlights { get; init; } = Array.Empty<string>();
     }
 
     private sealed record RepositoryDocument

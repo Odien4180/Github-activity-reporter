@@ -23,6 +23,13 @@ public static class WorkflowTemplate
 
         permissions:
           contents: read
+        {{- if github_pages_enabled }}
+          pages: write
+          id-token: write
+        {{- end }}
+        {{- if ai_summary_enabled && ai_provider == "github-models" }}
+          models: read
+        {{- end }}
 
         concurrency:
           group: activity-report
@@ -31,6 +38,11 @@ public static class WorkflowTemplate
         jobs:
           update-activity-report:
             runs-on: ubuntu-latest
+        {{- if github_pages_enabled }}
+            environment:
+              name: github-pages
+              url: ${{ '{{' }} steps.deployment.outputs.page_url {{ '}}' }}
+        {{- end }}
 
             steps:
               - name: Checkout reporter source
@@ -69,6 +81,19 @@ public static class WorkflowTemplate
               - name: Generate and publish activity report
                 env:
                   {{ token_secret_name }}: ${{ '{{' }} secrets.{{ token_secret_name }} {{ '}}' }}
+        {{- if email_enabled }}
+                  {{ email_secret_name }}: ${{ '{{' }} secrets.{{ email_secret_name }} {{ '}}' }}
+        {{- end }}
+        {{- if slack_enabled }}
+                  {{ slack_secret_name }}: ${{ '{{' }} secrets.{{ slack_secret_name }} {{ '}}' }}
+        {{- end }}
+        {{- if ai_summary_enabled }}
+        {{- if ai_uses_github_token }}
+                  {{ ai_secret_name }}: ${{ '{{' }} github.token {{ '}}' }}
+        {{- else }}
+                  {{ ai_secret_name }}: ${{ '{{' }} secrets.{{ ai_secret_name }} {{ '}}' }}
+        {{- end }}
+        {{- end }}
                 run: dotnet run --project {{ cli_project_path }} --configuration Release --no-build -- run --config {{ config_path }} --profile-path {{ profile_repository_path }} --verbose
 
               - name: Validate generated output
@@ -89,5 +114,16 @@ public static class WorkflowTemplate
                   git -C {{ profile_repository_path }} add -A
                   git -C {{ profile_repository_path }} commit -m "{{ commit_message }}"
                   git -C {{ profile_repository_path }} push origin HEAD:{{ branch }}
+        {{- if github_pages_enabled }}
+
+              - name: Upload GitHub Pages artifact
+                uses: actions/upload-pages-artifact@v4
+                with:
+                  path: {{ github_pages_output_directory }}
+
+              - name: Deploy GitHub Pages
+                id: deployment
+                uses: actions/deploy-pages@v4
+        {{- end }}
         """;
 }

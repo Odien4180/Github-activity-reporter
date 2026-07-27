@@ -183,6 +183,8 @@ public static class OutputTargetResolver
             KnownRenderers.NormalizedJson => configuration.Outputs.Json.Target,
             KnownRenderers.SvgDashboard => configuration.Outputs.Dashboard.Target,
             KnownRenderers.StaticHtml => Path.Combine(configuration.Outputs.Website.OutputDirectory, "index.html"),
+            KnownRenderers.EmailHtml => configuration.Outputs.Email.HtmlTarget,
+            KnownRenderers.SlackBlocks => configuration.Outputs.Slack.Target,
             _ => null
         };
     }

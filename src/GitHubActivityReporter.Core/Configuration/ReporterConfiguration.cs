@@ -184,7 +184,7 @@ public sealed class PublicPrivacySettings
 
     public bool ExposeCommitMessages { get; set; }
 
-    /// <summary>AI summarisation of public activity. Phase 4 feature, disabled by default.</summary>
+    /// <summary>Optional AI summarisation of public activity, disabled by default.</summary>
     public bool AiSummary { get; set; }
 }
 
@@ -245,6 +245,34 @@ public sealed class SummarySettings
     public int MaxPublicRepositories { get; set; } = 5;
 
     public int MaxItemsPerRepository { get; set; } = 3;
+
+    public AiSummarySettings Ai { get; set; } = new();
+}
+
+public sealed class AiSummarySettings
+{
+    /// <summary>Supported values are openai and github-models.</summary>
+    public string Provider { get; set; } = "openai";
+
+    public string Model { get; set; } = "gpt-5.6-sol";
+
+    public string ApiKeySecretName { get; set; } = "OPENAI_API_KEY";
+
+    /// <summary>
+    /// Allows public commit subjects to be used as AI-only evidence. They are never
+    /// emitted as raw report events when privacy.public.expose_commit_messages is false.
+    /// </summary>
+    public bool IncludePublicCommitMessages { get; set; }
+
+    public int MaxInputEvents { get; set; } = 100;
+
+    public int MaxInputCharacters { get; set; } = 20_000;
+
+    public int MaxOutputTokens { get; set; } = 800;
+
+    public int TimeoutSeconds { get; set; } = 30;
+
+    public int MaxRetries { get; set; } = 2;
 }
 
 public sealed class OutputSettings
@@ -264,8 +292,6 @@ public sealed class OutputSettings
         Target = "generated/report.json"
     };
 
-    // Phase 2 / Phase 3 outputs. Renderers are not part of the Phase 1 MVP and are
-    // rejected by the configuration validator while they are unimplemented.
     public FileOutputSettings Dashboard { get; set; } = new()
     {
         Enabled = false,
@@ -322,13 +348,21 @@ public sealed class PublisherSettings
     public TogglePublisherSettings GitHubProfile { get; set; } = new() { Enabled = true };
 
     [YamlMember(Alias = "github_pages")]
-    public TogglePublisherSettings GitHubPages { get; set; } = new();
+    public GitHubPagesPublisherSettings GitHubPages { get; set; } = new();
 
     public SecretPublisherSettings Email { get; set; } = new() { SecretName = "EMAIL_CREDENTIALS" };
 
     public SecretPublisherSettings Slack { get; set; } = new() { SecretName = "SLACK_WEBHOOK_URL" };
 
     public LocalPublisherSettings Local { get; set; } = new() { Enabled = true };
+}
+
+public sealed class GitHubPagesPublisherSettings
+{
+    public bool Enabled { get; set; }
+
+    /// <summary>Directory uploaded by the generated GitHub Actions workflow.</summary>
+    public string OutputDirectory { get; set; } = "artifacts/pages";
 }
 
 public sealed class TogglePublisherSettings

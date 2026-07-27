@@ -8,7 +8,7 @@ namespace GitHubActivityReporter.Core.Abstractions;
 /// </summary>
 public interface IPublicActivitySummarizer
 {
-    Task<IReadOnlyList<PublicRepositoryActivity>> SummarizeAsync(
+    Task<PublicActivitySummary> SummarizeAsync(
         IReadOnlyList<PublicActivityEvent> events,
         CancellationToken cancellationToken);
 }

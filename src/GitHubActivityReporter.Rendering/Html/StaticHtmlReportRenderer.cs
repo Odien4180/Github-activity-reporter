@@ -128,6 +128,16 @@ public sealed class StaticHtmlReportRenderer : IReportRenderer
         sb.AppendLine($"    <p class=\"meta\"><strong>Updated:</strong> {Escape(updated)}</p>");
         sb.AppendLine("""    <section class="card">""");
         sb.AppendLine("""      <h2>Public activity summary</h2>""");
+        if (!string.IsNullOrWhiteSpace(report.PublicNarrative.Headline))
+        {
+            sb.AppendLine($"      <p class=\"headline\">{Escape(report.PublicNarrative.Headline)}</p>");
+            sb.AppendLine("      <ul class=\"highlights\">");
+            foreach (var highlight in report.PublicNarrative.Highlights)
+            {
+                sb.AppendLine($"        <li>{Escape(highlight)}</li>");
+            }
+            sb.AppendLine("      </ul>");
+        }
         sb.AppendLine($"      <ul><li>{publicTotals.CommitCount} commits</li><li>{publicTotals.PullRequestMergedCount} merged pull requests</li><li>{publicTotals.IssueClosedCount} closed issues</li></ul>");
         sb.AppendLine("""    </section>""");
         sb.AppendLine("""    <section class="card">""");
@@ -203,6 +213,14 @@ public sealed class StaticHtmlReportRenderer : IReportRenderer
           color: var(--muted);
           margin: 4px 0;
         }
+        .headline {
+          font-size: 1.08rem;
+          font-weight: 650;
+          line-height: 1.55;
+        }
+        .highlights {
+          line-height: 1.65;
+        }
         .card {
           border: 1px solid var(--border);
           background: var(--card);
@@ -248,7 +266,8 @@ public sealed class StaticHtmlReportRenderer : IReportRenderer
             publicActivity = new
             {
                 activeRepositoryCount = report.PublicActivities.Count,
-                metrics = report.PublicTotals
+                metrics = report.PublicTotals,
+                narrative = report.PublicNarrative
             },
             privateActivity = report.PrivateMetrics,
             timeZone = context.TimeZone.Id

@@ -122,9 +122,21 @@ public sealed class InitCommand : AsyncCommand<InitCommandSettings>
 
         if (!settings.SkipWorkflow && prompts.Confirm("Generate the GitHub Actions workflow?"))
         {
-            var install = await new WorkflowInstaller()
-                .InstallAsync(configuration, workingDirectory)
-                .ConfigureAwait(false);
+            WorkflowInstallResult install;
+            try
+            {
+                install = await new WorkflowInstaller()
+                    .InstallAsync(
+                        configuration,
+                        workingDirectory,
+                        configurationPath: configPath)
+                    .ConfigureAwait(false);
+            }
+            catch (IOException exception)
+            {
+                AnsiConsole.MarkupLineInterpolated($"[red]x[/] {exception.Message}");
+                return 1;
+            }
 
             AnsiConsole.MarkupLineInterpolated($"[green]✓[/] Workflow written to {install.Path}");
             AnsiConsole.MarkupLineInterpolated(

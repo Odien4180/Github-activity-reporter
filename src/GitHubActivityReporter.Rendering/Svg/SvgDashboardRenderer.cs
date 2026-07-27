@@ -69,9 +69,9 @@ public sealed class SvgDashboardRenderer : IReportRenderer
         };
 
         var sb = new StringBuilder();
-        sb.AppendLine("""<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc" viewBox="0 0 900 300">""");
+        sb.AppendLine("""<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc" viewBox="0 0 900 330">""");
         sb.AppendLine($"  <title id=\"title\">{Escape(title)}</title>");
-        sb.AppendLine("""  <desc id="desc">Public and private development activity metrics.</desc>""");
+        sb.AppendLine($"  <desc id=\"desc\">{Escape(report.PublicNarrative.Headline ?? "Public and private development activity metrics.")}</desc>");
         sb.AppendLine("""  <defs>""");
         sb.AppendLine("""    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">""");
         sb.AppendLine("""      <stop offset="0" stop-color="#7c3aed" />""");
@@ -90,6 +90,7 @@ public sealed class SvgDashboardRenderer : IReportRenderer
         sb.AppendLine("""    .label { font-size: 12px; font-weight: 650; fill: #64748b; }""");
         sb.AppendLine("""    .status { font-size: 10px; font-weight: 700; fill: #047857; letter-spacing: .8px; }""");
         sb.AppendLine("""    .status-bg { fill: #d1fae5; }""");
+        sb.AppendLine("""    .narrative { font-size: 13px; font-weight: 600; fill: #334155; }""");
         sb.AppendLine("""    @media (prefers-color-scheme: dark) {""");
         sb.AppendLine("""      .bg { fill: #0d1117; }""");
         sb.AppendLine("""      .card { fill: #161b22; stroke: #30363d; }""");
@@ -98,9 +99,10 @@ public sealed class SvgDashboardRenderer : IReportRenderer
         sb.AppendLine("""      .eyebrow { fill: #a78bfa; }""");
         sb.AppendLine("""      .status-bg { fill: #064e3b; }""");
         sb.AppendLine("""      .status { fill: #6ee7b7; }""");
+        sb.AppendLine("""      .narrative { fill: #cbd5e1; }""");
         sb.AppendLine("""    }""");
         sb.AppendLine("""  </style>""");
-        sb.AppendLine("""  <rect class="bg" x="0" y="0" width="900" height="300" rx="18" />""");
+        sb.AppendLine("""  <rect class="bg" x="0" y="0" width="900" height="330" rx="18" />""");
         sb.AppendLine("""  <rect x="0" y="0" width="900" height="5" rx="2.5" fill="url(#accent)" />""");
         sb.AppendLine("""  <text class="eyebrow" x="30" y="34">GITHUB ACTIVITY</text>""");
         sb.AppendLine($"  <text class=\"title\" x=\"30\" y=\"64\">{Escape(title)}</text>");
@@ -117,8 +119,12 @@ public sealed class SvgDashboardRenderer : IReportRenderer
             sb.AppendLine($"  <rect x=\"{x + 18}\" y=\"207\" width=\"42\" height=\"3\" rx=\"1.5\" fill=\"url(#accent)\" />");
         }
 
-        sb.AppendLine($"  <text class=\"sub\" x=\"30\" y=\"270\">Updated · {Escape(updated)}</text>");
-        sb.AppendLine("""  <text class="sub" x="870" y="270" text-anchor="end">github-activity-reporter</text>""");
+        if (!string.IsNullOrWhiteSpace(report.PublicNarrative.Headline))
+        {
+            sb.AppendLine($"  <text class=\"narrative\" x=\"30\" y=\"263\">{Escape(Truncate(report.PublicNarrative.Headline, 105))}</text>");
+        }
+        sb.AppendLine($"  <text class=\"sub\" x=\"30\" y=\"302\">Updated · {Escape(updated)}</text>");
+        sb.AppendLine("""  <text class="sub" x="870" y="302" text-anchor="end">github-activity-reporter</text>""");
         sb.AppendLine("""</svg>""");
         return sb.ToString();
     }
@@ -128,4 +134,7 @@ public sealed class SvgDashboardRenderer : IReportRenderer
             .Replace("<", "&lt;", StringComparison.Ordinal)
             .Replace(">", "&gt;", StringComparison.Ordinal)
             .Replace("\"", "&quot;", StringComparison.Ordinal);
+
+    private static string Truncate(string value, int maxLength)
+        => value.Length <= maxLength ? value : value[..(maxLength - 1)] + "…";
 }

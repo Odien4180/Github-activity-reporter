@@ -13,6 +13,8 @@ public sealed record ActivityReport
 
     public required IReadOnlyList<PublicRepositoryActivity> PublicActivities { get; init; }
 
+    public PublicActivityNarrative PublicNarrative { get; init; } = new();
+
     public required PrivateActivityMetrics PrivateMetrics { get; init; }
 
     public PublicActivityMetrics PublicTotals => new()

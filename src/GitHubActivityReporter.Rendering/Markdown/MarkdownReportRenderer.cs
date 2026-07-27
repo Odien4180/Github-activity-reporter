@@ -141,6 +141,8 @@ public sealed class MarkdownReportRenderer : IReportRenderer
         builder.AppendLine(korean ? "### 공개 프로젝트" : "### Public Projects");
         builder.AppendLine();
 
+        AppendPublicNarrative(builder, report.PublicNarrative, korean);
+
         if (report.PublicActivities.Count == 0)
         {
             builder.AppendLine(korean
@@ -211,6 +213,28 @@ public sealed class MarkdownReportRenderer : IReportRenderer
                 builder.AppendLine();
             }
         }
+    }
+
+    private static void AppendPublicNarrative(
+        StringBuilder builder,
+        PublicActivityNarrative narrative,
+        bool korean)
+    {
+        if (string.IsNullOrWhiteSpace(narrative.Headline))
+        {
+            return;
+        }
+
+        builder.AppendLine(korean ? "#### 이번 활동 요약" : "#### Activity Summary");
+        builder.AppendLine();
+        builder.Append("> ").AppendLine(EscapeMarkdown(narrative.Headline));
+        builder.AppendLine();
+        foreach (var highlight in narrative.Highlights)
+        {
+            builder.Append("- ").AppendLine(EscapeMarkdown(highlight));
+        }
+
+        builder.AppendLine();
     }
 
     private static void AppendItems(
@@ -360,7 +384,9 @@ public sealed class MarkdownReportRenderer : IReportRenderer
 
     private static string EscapeMarkdown(string value)
         => value.Replace("[", "\\[", StringComparison.Ordinal)
-            .Replace("]", "\\]", StringComparison.Ordinal);
+            .Replace("]", "\\]", StringComparison.Ordinal)
+            .Replace("<", "&lt;", StringComparison.Ordinal)
+            .Replace(">", "&gt;", StringComparison.Ordinal);
 
     private static string EscapeHtml(string value)
         => value.Replace("&", "&amp;", StringComparison.Ordinal)

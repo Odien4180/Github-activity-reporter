@@ -28,10 +28,19 @@ public sealed class WorkflowInstaller
         string repositoryPath,
         WorkflowOptions? options = null,
         bool dryRun = false,
+        string? configurationPath = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(configuration);
         ArgumentException.ThrowIfNullOrWhiteSpace(repositoryPath);
+
+        if (!string.IsNullOrWhiteSpace(configurationPath))
+        {
+            options = (options ?? new WorkflowOptions()) with
+            {
+                ConfigPath = GetRepositoryRelativePath(repositoryPath, configurationPath)
+            };
+        }
 
         var content = _generator.Generate(configuration, options);
         var directory = Path.Combine(Path.GetFullPath(repositoryPath), WorkflowTemplate.RelativeDirectory);
@@ -53,5 +62,22 @@ public sealed class WorkflowInstaller
         }
 
         return new WorkflowInstallResult { Path = path, Changed = true, Content = content };
+    }
+
+    private static string GetRepositoryRelativePath(string repositoryPath, string configurationPath)
+    {
+        var repositoryRoot = Path.GetFullPath(repositoryPath);
+        var fullConfigurationPath = Path.GetFullPath(configurationPath);
+        var relativePath = Path.GetRelativePath(repositoryRoot, fullConfigurationPath);
+
+        if (Path.IsPathRooted(relativePath)
+            || relativePath.Equals("..", StringComparison.Ordinal)
+            || relativePath.StartsWith($"..{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+            || relativePath.StartsWith($"..{Path.AltDirectorySeparatorChar}", StringComparison.Ordinal))
+        {
+            throw new IOException("The workflow configuration file must be inside the repository where the workflow is installed.");
+        }
+
+        return relativePath.Replace('\\', '/');
     }
 }

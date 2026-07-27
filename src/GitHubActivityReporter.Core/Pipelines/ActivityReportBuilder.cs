@@ -44,7 +44,7 @@ public sealed class ActivityReportBuilder
         ArgumentNullException.ThrowIfNull(context);
 
         // Only public events are handed to a summarizer, never private ones.
-        var publicActivities = await _summarizer
+        var publicSummary = await _summarizer
             .SummarizeAsync(collected.PublicEvents, cancellationToken)
             .ConfigureAwait(false);
 
@@ -56,7 +56,8 @@ public sealed class ActivityReportBuilder
             PeriodStart = context.Period.Start,
             PeriodEnd = context.Period.End,
             GitHubUserName = context.GitHubUserName,
-            PublicActivities = publicActivities,
+            PublicActivities = publicSummary.Repositories,
+            PublicNarrative = publicSummary.Narrative,
             PrivateMetrics = privateMetrics
         };
     }

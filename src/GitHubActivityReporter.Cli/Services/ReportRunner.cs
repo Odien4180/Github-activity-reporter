@@ -7,11 +7,18 @@ using GitHubActivityReporter.Core.State;
 using GitHubActivityReporter.Core.Validation;
 using GitHubActivityReporter.Publishing.FileSystem;
 using GitHubActivityReporter.Publishing.GitHubProfile;
+using GitHubActivityReporter.Publishing.GitHubPages;
+using GitHubActivityReporter.Publishing.Email;
+using GitHubActivityReporter.Publishing.Slack;
 using GitHubActivityReporter.Rendering.Html;
+using GitHubActivityReporter.Rendering.Email;
 using GitHubActivityReporter.Rendering.Json;
 using GitHubActivityReporter.Rendering.Markdown;
+using GitHubActivityReporter.Rendering.Slack;
 using GitHubActivityReporter.Rendering.Svg;
 using GitHubActivityReporter.Summarization.RuleBased;
+using GitHubActivityReporter.Summarization.AI;
+using GitHubActivityReporter.Summarization.Fallback;
 
 namespace GitHubActivityReporter.Cli.Services;
 
@@ -94,7 +101,7 @@ public sealed class ReportRunner
 
         var collected = await _collector.CollectAsync(request, cancellationToken).ConfigureAwait(false);
 
-        var summarizer = new RuleBasedPublicActivitySummarizer(configuration.Summary);
+        var summarizer = BuildSummarizer(configuration);
         var reportBuilder = new ActivityReportBuilder(summarizer, _clock);
         var report = await reportBuilder
             .BuildAsync(collected, new ReportBuildContext
@@ -170,7 +177,49 @@ public sealed class ReportRunner
             renderers.Add(new StaticHtmlReportRenderer());
         }
 
+        if (configuration.Outputs.Email.Enabled)
+        {
+            renderers.Add(new EmailReportRenderer());
+        }
+
+        if (configuration.Outputs.Slack.Enabled)
+        {
+            renderers.Add(new SlackBlockKitRenderer());
+        }
+
         return renderers;
+    }
+
+    private IPublicActivitySummarizer BuildSummarizer(ReporterConfiguration configuration)
+    {
+        var ruleBased = new RuleBasedPublicActivitySummarizer(configuration.Summary);
+        if (!configuration.Privacy.Public.AiSummary)
+        {
+            return ruleBased;
+        }
+
+        var ai = configuration.Summary.Ai;
+        var credential = Environment.GetEnvironmentVariable(ai.ApiKeySecretName);
+        if (string.IsNullOrWhiteSpace(credential))
+        {
+            _log.Warning($"AI summary credential '{ai.ApiKeySecretName}' is not set; using rule-based summaries.");
+            return ruleBased;
+        }
+
+        _privateTerms.Add(credential);
+        IAiTextClient client = ai.Provider switch
+        {
+            "openai" => new OpenAiResponsesClient(credential, ai.Model, maxRetries: ai.MaxRetries),
+            "github-models" => new GitHubModelsClient(credential, ai.Model, maxRetries: ai.MaxRetries),
+            _ => throw new InvalidOperationException($"Unsupported AI summary provider '{ai.Provider}'.")
+        };
+
+        var primary = new AiPublicActivitySummarizer(client, configuration.Summary, configuration.Privacy.Public);
+        return new FallbackPublicActivitySummarizer(
+            primary,
+            ruleBased,
+            _log,
+            TimeSpan.FromSeconds(ai.TimeoutSeconds));
     }
 
     private static IReadOnlyList<IReportPublisher> BuildPublishers(RunOptions options, IReporterLog log)
@@ -185,6 +234,21 @@ public sealed class ReportRunner
         if (options.Configuration.Publishers.GitHubProfile.Enabled)
         {
             publishers.Add(new GitHubProfileReportPublisher(log: log));
+        }
+
+        if (options.Configuration.Publishers.GitHubPages.Enabled)
+        {
+            publishers.Add(new GitHubPagesReportPublisher(log));
+        }
+
+        if (options.Configuration.Publishers.Email.Enabled)
+        {
+            publishers.Add(new EmailReportPublisher());
+        }
+
+        if (options.Configuration.Publishers.Slack.Enabled)
+        {
+            publishers.Add(new SlackReportPublisher());
         }
 
         return publishers;

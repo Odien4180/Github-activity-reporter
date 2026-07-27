@@ -36,7 +36,13 @@ public sealed class InstallWorkflowCommand : AsyncCommand<InstallWorkflowCommand
                 : Path.GetFullPath(settings.RepositoryPath!);
 
             var result = await new WorkflowInstaller()
-                .InstallAsync(loaded.Configuration, repositoryPath, new WorkflowOptions(), settings.DryRun)
+                .InstallAsync(
+                    loaded.Configuration,
+                    repositoryPath,
+                    new WorkflowOptions(),
+                    settings.DryRun,
+                    loaded.Path,
+                    cancellationToken)
                 .ConfigureAwait(false);
 
             if (settings.DryRun)
@@ -65,6 +71,11 @@ public sealed class InstallWorkflowCommand : AsyncCommand<InstallWorkflowCommand
         catch (ConfigurationLoadException exception)
         {
             CommandOutput.PrintConfigurationError(exception);
+            return 1;
+        }
+        catch (IOException exception)
+        {
+            AnsiConsole.MarkupLineInterpolated($"[red]x[/] {exception.Message}");
             return 1;
         }
     }

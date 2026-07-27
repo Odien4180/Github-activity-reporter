@@ -52,7 +52,19 @@ public sealed class WorkflowGenerator
             ["profile_repository_path"] = options.ProfileRepositoryPath,
             ["token_secret_name"] = configuration.GitHub.TokenSecretName,
             ["commit_message"] = options.CommitMessage,
-            ["branch"] = configuration.GitHub.ProfileRepository.Branch
+            ["branch"] = configuration.GitHub.ProfileRepository.Branch,
+            ["github_pages_enabled"] = configuration.Publishers.GitHubPages.Enabled,
+            ["github_pages_output_directory"] = configuration.Publishers.GitHubPages.OutputDirectory,
+            ["email_enabled"] = configuration.Publishers.Email.Enabled,
+            ["email_secret_name"] = configuration.Publishers.Email.SecretName,
+            ["slack_enabled"] = configuration.Publishers.Slack.Enabled,
+            ["slack_secret_name"] = configuration.Publishers.Slack.SecretName,
+            ["ai_summary_enabled"] = configuration.Privacy.Public.AiSummary,
+            ["ai_provider"] = configuration.Summary.Ai.Provider,
+            ["ai_secret_name"] = configuration.Summary.Ai.ApiKeySecretName,
+            ["ai_uses_github_token"] = configuration.Privacy.Public.AiSummary
+                && configuration.Summary.Ai.Provider == "github-models"
+                && configuration.Summary.Ai.ApiKeySecretName == "GITHUB_TOKEN"
         };
 
         var context = new TemplateContext { StrictVariables = true };

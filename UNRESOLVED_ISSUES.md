@@ -1,28 +1,16 @@
 # Unresolved Issues
 
-This document tracks intentionally deferred work so implementation can continue into the next phase without losing context.
+This document tracks operational verification that cannot be performed safely without user-owned credentials or external side effects. The planned local implementation through Phase 4 is complete.
 
-## Deferred from Phase 1
+## Completed live verification
 
-- Expand GitHub integration test coverage with mock/dry-run scenarios.
-- Add the remaining Phase 1 documentation completeness checks.
+- GitHub Models public activity summary using a user-provided token with `models: read` permission. The generated preview was reviewed by the user, and the resulting feedback was incorporated into the richer narrative summary format.
 
-## Phase 2 Remaining Work
+## Live smoke tests
 
-- Implement the GitHub Pages publisher.
-- Add snapshot tests for SVG and static HTML outputs.
+- Deploy an enabled static website to a real GitHub Pages environment.
+- Send one test email with user-provided SMTP credentials.
+- Send one test Slack message with a user-provided incoming webhook.
+- Run one OpenAI Responses API summary with a user-provided API key.
 
-## Phase 3 Remaining Work
-
-- Implement the email HTML renderer.
-- Implement the email plain-text renderer.
-- Implement the Slack Block Kit renderer.
-- Implement the email and Slack publishers with dry-run support.
-- Add channel-specific validation and tests.
-
-## Phase 4 Remaining Work
-
-- Harden the AI provider abstraction.
-- Implement public-only OpenAI/Copilot summarizer adapters.
-- Add token/time/cost limits with retry and timeout controls.
-- Add rule-based fallback verification tests.
+These checks are deliberately not run by the automated test suite because they can publish externally, send messages, consume paid API quota, or require repository-level configuration.

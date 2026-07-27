@@ -26,7 +26,7 @@ public sealed class FallbackPublicActivitySummarizer : IPublicActivitySummarizer
         _timeout = timeout ?? TimeSpan.FromSeconds(30);
     }
 
-    public async Task<IReadOnlyList<PublicRepositoryActivity>> SummarizeAsync(
+    public async Task<PublicActivitySummary> SummarizeAsync(
         IReadOnlyList<PublicActivityEvent> events,
         CancellationToken cancellationToken)
     {
@@ -38,7 +38,7 @@ public sealed class FallbackPublicActivitySummarizer : IPublicActivitySummarizer
             timeoutSource.CancelAfter(_timeout);
 
             var result = await _primary.SummarizeAsync(events, timeoutSource.Token).ConfigureAwait(false);
-            if (result.Count > 0 || events.Count == 0)
+            if (result.Repositories.Count > 0 || events.Count == 0)
             {
                 return result;
             }

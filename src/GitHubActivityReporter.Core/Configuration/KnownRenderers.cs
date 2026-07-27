@@ -6,8 +6,6 @@ public static class KnownRenderers
     public const string CompactMarkdown = "compact-markdown";
     public const string NormalizedJson = "normalized-json";
 
-    // Not implemented yet (Phase 2 / Phase 3). Enabling them is rejected by the
-    // configuration validator so a user never gets a silently missing output.
     public const string SvgDashboard = "svg-dashboard";
     public const string StaticHtml = "static-html";
     public const string EmailHtml = "email-html";
@@ -18,14 +16,12 @@ public static class KnownRenderers
         CompactMarkdown,
         NormalizedJson,
         SvgDashboard,
-        StaticHtml
-    };
-
-    public static IReadOnlySet<string> Planned { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-    {
+        StaticHtml,
         EmailHtml,
         SlackBlocks
     };
+
+    public static IReadOnlySet<string> Planned { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 }
 
 public static class KnownPublishers
@@ -33,7 +29,6 @@ public static class KnownPublishers
     public const string Local = "local";
     public const string GitHubProfile = "github-profile";
 
-    // Planned publishers, see IMPLEMENTATION_PLAN.md.
     public const string GitHubPages = "github-pages";
     public const string Email = "email";
     public const string Slack = "slack";
@@ -41,6 +36,9 @@ public static class KnownPublishers
     public static IReadOnlySet<string> Implemented { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
         Local,
-        GitHubProfile
+        GitHubProfile,
+        GitHubPages,
+        Email,
+        Slack
     };
 }
