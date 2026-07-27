@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("GitHub Activity Reporter contributors")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("0.1.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("0.1.0+3066d1108f4d58911a34efb4b98a7493257cc07d")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("0.1.0+9e710514672f48731020acd793c864fb37037f69")]
 [assembly: System.Reflection.AssemblyProductAttribute("GitHub Activity Reporter")]
 [assembly: System.Reflection.AssemblyTitleAttribute("GitHubActivityReporter.Bootstrap")]
 [assembly: System.Reflection.AssemblyVersionAttribute("0.1.0.0")]
