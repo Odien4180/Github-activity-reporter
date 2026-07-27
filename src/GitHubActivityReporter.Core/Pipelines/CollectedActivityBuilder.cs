@@ -97,15 +97,17 @@ public sealed class CollectedActivityBuilder
 
     private ActivityVisibility? AddPrivate(ActivityInput input, CollectionRequest request)
     {
-        // Private identifiers are registered even when the event itself is filtered out,
-        // so that the privacy validator still knows about them.
+        // Private identifiers are registered unconditionally so that the privacy
+        // validator can prove they never reached an output.
         RegisterPrivateTerms(input);
 
-        if (!request.CollectPrivate || !request.PrivateEventTypes.Contains(input.Type))
+        if (!request.CollectPrivate)
         {
             return null;
         }
 
+        // Activity counts are always collected regardless of the event-type filter
+        // so that the metrics reflect the real volume of private work.
         _privateEvents.Add(new PrivateActivityEvent
         {
             RepositoryOpaqueId = OpaqueIdentifier.Create(input.RepositoryFullName),

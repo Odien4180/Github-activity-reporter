@@ -34,11 +34,20 @@ public sealed record ValidationContext
             terms.AddRange(configuration.Privacy.CustomForbiddenTerms);
         }
 
+        // The configured GitHub username appears legitimately in report outputs
+        // (profile links, attribution, etc.) so it must not be treated as a forbidden term.
+        var allowedTerms = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (!string.IsNullOrWhiteSpace(configuration?.GitHub.Username))
+        {
+            allowedTerms.Add(configuration.GitHub.Username.Trim());
+        }
+
         return new ValidationContext
         {
             ForbiddenTerms = terms
                 .Where(t => !string.IsNullOrWhiteSpace(t))
                 .Select(t => t.Trim())
+                .Where(t => !allowedTerms.Contains(t))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToArray(),
             SecretValues = (secretValues ?? Array.Empty<string>())

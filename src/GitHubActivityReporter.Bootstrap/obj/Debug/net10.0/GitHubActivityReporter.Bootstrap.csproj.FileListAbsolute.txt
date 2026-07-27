@@ -1,3 +1,6 @@
+/home/runner/work/Github-activity-reporter/Github-activity-reporter/src/GitHubActivityReporter.Bootstrap/obj/Debug/net10.0/GitHubActivityReporter.Bootstrap.dll
+/home/runner/work/Github-activity-reporter/Github-activity-reporter/src/GitHubActivityReporter.Bootstrap/obj/Debug/net10.0/refint/GitHubActivityReporter.Bootstrap.dll
+/home/runner/work/Github-activity-reporter/Github-activity-reporter/src/GitHubActivityReporter.Bootstrap/obj/Debug/net10.0/GitHubActivityReporter.Bootstrap.pdb
 /home/runner/work/Github-activity-reporter/Github-activity-reporter/src/GitHubActivityReporter.Bootstrap/bin/Debug/net10.0/GitHubActivityReporter.Bootstrap.deps.json
 /home/runner/work/Github-activity-reporter/Github-activity-reporter/src/GitHubActivityReporter.Bootstrap/bin/Debug/net10.0/GitHubActivityReporter.Bootstrap.dll
 /home/runner/work/Github-activity-reporter/Github-activity-reporter/src/GitHubActivityReporter.Bootstrap/bin/Debug/net10.0/GitHubActivityReporter.Bootstrap.pdb
@@ -10,7 +13,4 @@
 /home/runner/work/Github-activity-reporter/Github-activity-reporter/src/GitHubActivityReporter.Bootstrap/obj/Debug/net10.0/GitHubActivityReporter.Bootstrap.csproj.CoreCompileInputs.cache
 /home/runner/work/Github-activity-reporter/Github-activity-reporter/src/GitHubActivityReporter.Bootstrap/obj/Debug/net10.0/GitHubActivityReporter.Bootstrap.sourcelink.json
 /home/runner/work/Github-activity-reporter/Github-activity-reporter/src/GitHubActivityReporter.Bootstrap/obj/Debug/net10.0/GitHubAc.4DCFD07E.Up2Date
-/home/runner/work/Github-activity-reporter/Github-activity-reporter/src/GitHubActivityReporter.Bootstrap/obj/Debug/net10.0/GitHubActivityReporter.Bootstrap.dll
-/home/runner/work/Github-activity-reporter/Github-activity-reporter/src/GitHubActivityReporter.Bootstrap/obj/Debug/net10.0/refint/GitHubActivityReporter.Bootstrap.dll
-/home/runner/work/Github-activity-reporter/Github-activity-reporter/src/GitHubActivityReporter.Bootstrap/obj/Debug/net10.0/GitHubActivityReporter.Bootstrap.pdb
 /home/runner/work/Github-activity-reporter/Github-activity-reporter/src/GitHubActivityReporter.Bootstrap/obj/Debug/net10.0/ref/GitHubActivityReporter.Bootstrap.dll

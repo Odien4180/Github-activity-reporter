@@ -1,6 +1,8 @@
+using GitHubActivityReporter.Core.Configuration;
 using GitHubActivityReporter.Core.Models;
 using GitHubActivityReporter.Core.Pipelines;
 using GitHubActivityReporter.Core.Security;
+using GitHubActivityReporter.Core.Validation;
 
 namespace GitHubActivityReporter.Core.Tests;
 
@@ -113,8 +115,11 @@ public sealed class ActivityClassificationTests
         builder.Add(Input(isPrivate: true, ActivityType.Commit, repository: "company/secret"), request);
         builder.Add(Input(isPrivate: true, ActivityType.PullRequestMerged, repository: "company/secret"), request);
 
+        // Public events are still filtered by event type.
         Assert.Equal(1, builder.PublicEventCount);
-        Assert.Equal(1, builder.PrivateEventCount);
+        // Private events are always counted regardless of the event-type filter so
+        // that metrics reflect the real volume of private work.
+        Assert.Equal(2, builder.PrivateEventCount);
     }
 
     [Fact]
@@ -177,5 +182,52 @@ public sealed class ActivityClassificationTests
         Assert.Equal("Improve configuration flow", item.Title);
         Assert.Equal("C#", item.Language);
         Assert.Equal(["dotnet"], item.Topics);
+    }
+
+    [Fact]
+    public void GitHub_username_is_excluded_from_forbidden_terms_in_validation_context()
+    {
+        // If the user owns a private repo (username/private-repo), the owner segment
+        // would normally be added to the registry. It must NOT appear in ForbiddenTerms
+        // because the username legitimately appears in public report outputs.
+        const string userName = "my-github-user";
+        var registry = new InMemoryPrivateTermRegistry();
+        var builder = new CollectedActivityBuilder(registry);
+
+        builder.Add(
+            new ActivityInput
+            {
+                Type = ActivityType.Commit,
+                RepositoryFullName = $"{userName}/private-work",
+                IsPrivateRepository = true,
+                OccurredAt = Start.AddDays(1)
+            },
+            Request());
+
+        // The registry must contain the username as a segment of the full repo name.
+        Assert.Contains(userName, registry.Terms, StringComparer.OrdinalIgnoreCase);
+
+        var configuration = ReporterConfiguration.CreateDefault(userName);
+        var context = ValidationContext.Create(registry, configuration);
+
+        // But the validation context must exclude it so public outputs that reference
+        // the username are not incorrectly flagged.
+        Assert.DoesNotContain(userName, context.ForbiddenTerms, StringComparer.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Private_event_type_filter_does_not_suppress_counts()
+    {
+        // Even when a specific event type (e.g. Commit) is excluded from the private
+        // event-type filter, that event must still be counted in the metrics.
+        var builder = new CollectedActivityBuilder(new InMemoryPrivateTermRegistry());
+        var request = Request(
+            privateTypes: new HashSet<ActivityType> { ActivityType.PullRequestMerged });
+
+        builder.Add(Input(isPrivate: true, ActivityType.Commit, repository: "company/secret"), request);
+        builder.Add(Input(isPrivate: true, ActivityType.PullRequestMerged, repository: "company/secret"), request);
+
+        // Both events are counted regardless of the filter.
+        Assert.Equal(2, builder.PrivateEventCount);
     }
 }
