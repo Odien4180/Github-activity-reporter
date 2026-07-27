@@ -1,0 +1,16 @@
+/home/runner/work/Github-activity-reporter/Github-activity-reporter/src/GitHubActivityReporter.Summarization/bin/Debug/net10.0/GitHubActivityReporter.Summarization.deps.json
+/home/runner/work/Github-activity-reporter/Github-activity-reporter/src/GitHubActivityReporter.Summarization/bin/Debug/net10.0/GitHubActivityReporter.Summarization.dll
+/home/runner/work/Github-activity-reporter/Github-activity-reporter/src/GitHubActivityReporter.Summarization/bin/Debug/net10.0/GitHubActivityReporter.Summarization.pdb
+/home/runner/work/Github-activity-reporter/Github-activity-reporter/src/GitHubActivityReporter.Summarization/bin/Debug/net10.0/GitHubActivityReporter.Core.dll
+/home/runner/work/Github-activity-reporter/Github-activity-reporter/src/GitHubActivityReporter.Summarization/bin/Debug/net10.0/GitHubActivityReporter.Core.pdb
+/home/runner/work/Github-activity-reporter/Github-activity-reporter/src/GitHubActivityReporter.Summarization/obj/Debug/net10.0/GitHubActivityReporter.Summarization.csproj.AssemblyReference.cache
+/home/runner/work/Github-activity-reporter/Github-activity-reporter/src/GitHubActivityReporter.Summarization/obj/Debug/net10.0/GitHubActivityReporter.Summarization.GeneratedMSBuildEditorConfig.editorconfig
+/home/runner/work/Github-activity-reporter/Github-activity-reporter/src/GitHubActivityReporter.Summarization/obj/Debug/net10.0/GitHubActivityReporter.Summarization.AssemblyInfoInputs.cache
+/home/runner/work/Github-activity-reporter/Github-activity-reporter/src/GitHubActivityReporter.Summarization/obj/Debug/net10.0/GitHubActivityReporter.Summarization.AssemblyInfo.cs
+/home/runner/work/Github-activity-reporter/Github-activity-reporter/src/GitHubActivityReporter.Summarization/obj/Debug/net10.0/GitHubActivityReporter.Summarization.csproj.CoreCompileInputs.cache
+/home/runner/work/Github-activity-reporter/Github-activity-reporter/src/GitHubActivityReporter.Summarization/obj/Debug/net10.0/GitHubActivityReporter.Summarization.sourcelink.json
+/home/runner/work/Github-activity-reporter/Github-activity-reporter/src/GitHubActivityReporter.Summarization/obj/Debug/net10.0/GitHubAc.6ABD89D3.Up2Date
+/home/runner/work/Github-activity-reporter/Github-activity-reporter/src/GitHubActivityReporter.Summarization/obj/Debug/net10.0/GitHubActivityReporter.Summarization.dll
+/home/runner/work/Github-activity-reporter/Github-activity-reporter/src/GitHubActivityReporter.Summarization/obj/Debug/net10.0/refint/GitHubActivityReporter.Summarization.dll
+/home/runner/work/Github-activity-reporter/Github-activity-reporter/src/GitHubActivityReporter.Summarization/obj/Debug/net10.0/GitHubActivityReporter.Summarization.pdb
+/home/runner/work/Github-activity-reporter/Github-activity-reporter/src/GitHubActivityReporter.Summarization/obj/Debug/net10.0/ref/GitHubActivityReporter.Summarization.dll
