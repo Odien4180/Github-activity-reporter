@@ -181,6 +181,8 @@ public static class OutputTargetResolver
         {
             KnownRenderers.CompactMarkdown => configuration.Outputs.GitHubProfile.Target,
             KnownRenderers.NormalizedJson => configuration.Outputs.Json.Target,
+            KnownRenderers.SvgDashboard => configuration.Outputs.Dashboard.Target,
+            KnownRenderers.StaticHtml => Path.Combine(configuration.Outputs.Website.OutputDirectory, "index.html"),
             _ => null
         };
     }

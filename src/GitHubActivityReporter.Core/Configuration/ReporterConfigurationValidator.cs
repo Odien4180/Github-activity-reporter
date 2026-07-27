@@ -104,13 +104,30 @@ public sealed class ReporterConfigurationValidator : AbstractValidator<ReporterC
             .When(c => c.Outputs.Json.Enabled)
             .WithMessage("outputs.json.target is required.");
 
-        RuleFor(c => c.Outputs.Dashboard.Enabled)
-            .Equal(false)
-            .WithMessage("outputs.dashboard is not implemented in this version (Phase 2).");
+        RuleFor(c => c.Outputs.Dashboard)
+            .Must(o => KnownRenderers.Implemented.Contains(o.Renderer))
+            .When(c => c.Outputs.Dashboard.Enabled)
+            .WithMessage($"outputs.dashboard.renderer must be '{KnownRenderers.SvgDashboard}'.");
 
-        RuleFor(c => c.Outputs.Website.Enabled)
-            .Equal(false)
-            .WithMessage("outputs.website is not implemented in this version (Phase 2).");
+        RuleFor(c => c.Outputs.Dashboard.Target)
+            .NotEmpty()
+            .When(c => c.Outputs.Dashboard.Enabled)
+            .WithMessage("outputs.dashboard.target is required.");
+
+        RuleFor(c => c.Outputs.Website)
+            .Must(o => KnownRenderers.Implemented.Contains(o.Renderer))
+            .When(c => c.Outputs.Website.Enabled)
+            .WithMessage($"outputs.website.renderer must be '{KnownRenderers.StaticHtml}'.");
+
+        RuleFor(c => c.Outputs.Website.OutputDirectory)
+            .NotEmpty()
+            .When(c => c.Outputs.Website.Enabled)
+            .WithMessage("outputs.website.output_directory is required.");
+
+        RuleFor(c => c.Outputs.Website.HistoryDays)
+            .InclusiveBetween(1, 365)
+            .When(c => c.Outputs.Website.Enabled)
+            .WithMessage("outputs.website.history_days must be between 1 and 365.");
 
         RuleFor(c => c.Outputs.Email.Enabled)
             .Equal(false)

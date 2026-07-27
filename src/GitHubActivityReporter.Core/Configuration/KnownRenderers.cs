@@ -16,13 +16,13 @@ public static class KnownRenderers
     public static IReadOnlySet<string> Implemented { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
         CompactMarkdown,
-        NormalizedJson
+        NormalizedJson,
+        SvgDashboard,
+        StaticHtml
     };
 
     public static IReadOnlySet<string> Planned { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
-        SvgDashboard,
-        StaticHtml,
         EmailHtml,
         SlackBlocks
     };

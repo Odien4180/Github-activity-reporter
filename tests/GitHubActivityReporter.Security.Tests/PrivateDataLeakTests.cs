@@ -2,8 +2,10 @@ using GitHubActivityReporter.Core.Abstractions;
 using GitHubActivityReporter.Core.Models;
 using GitHubActivityReporter.Core.Pipelines;
 using GitHubActivityReporter.Core.Validation;
+using GitHubActivityReporter.Rendering.Html;
 using GitHubActivityReporter.Rendering.Json;
 using GitHubActivityReporter.Rendering.Markdown;
+using GitHubActivityReporter.Rendering.Svg;
 using GitHubActivityReporter.Summarization.RuleBased;
 
 namespace GitHubActivityReporter.Security.Tests;
@@ -56,6 +58,40 @@ public sealed class PrivateDataLeakTests
         foreach (var forbidden in SampleActivity.PrivateStrings)
         {
             Assert.DoesNotContain(forbidden, json, StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
+    [Fact]
+    public async Task Svg_output_never_contains_private_identifiers()
+    {
+        var (report, context, _) = await BuildAsync();
+        context = context with { TargetPath = "generated/activity-dashboard.svg" };
+
+        var svg = new SvgDashboardRenderer().Render(report, context);
+
+        Assert.Contains("Development Activity", svg, StringComparison.Ordinal);
+        foreach (var forbidden in SampleActivity.PrivateStrings)
+        {
+            Assert.DoesNotContain(forbidden, svg, StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
+    [Fact]
+    public async Task Html_website_output_never_contains_private_identifiers()
+    {
+        var (report, context, _) = await BuildAsync();
+        var configuration = context.Configuration;
+        configuration.Outputs.Website.Enabled = true;
+        configuration.Outputs.Website.OutputDirectory = "generated/site";
+        var websiteContext = context with { Configuration = configuration, TargetPath = "generated/site/index.html" };
+
+        var rendered = await new StaticHtmlReportRenderer().RenderAsync(report, websiteContext, CancellationToken.None);
+        var siteText = string.Join('\n', rendered.Artifacts.Select(a => a.Content));
+
+        Assert.Contains(SampleActivity.PublicRepository, siteText, StringComparison.Ordinal);
+        foreach (var forbidden in SampleActivity.PrivateStrings)
+        {
+            Assert.DoesNotContain(forbidden, siteText, StringComparison.OrdinalIgnoreCase);
         }
     }
 
@@ -134,9 +170,21 @@ public sealed class PrivateDataLeakTests
 
         var markdown = await new MarkdownReportRenderer().RenderAsync(report, context, CancellationToken.None);
         var json = await new JsonReportRenderer().RenderAsync(report, context, CancellationToken.None);
+        var svg = await new SvgDashboardRenderer().RenderAsync(report, context with { TargetPath = "generated/activity-dashboard.svg" }, CancellationToken.None);
+
+        var configuration = context.Configuration;
+        configuration.Outputs.Website.Enabled = true;
+        configuration.Outputs.Website.OutputDirectory = "generated/site";
+        var website = await new StaticHtmlReportRenderer().RenderAsync(report, context with
+        {
+            Configuration = configuration,
+            TargetPath = "generated/site/index.html"
+        }, CancellationToken.None);
 
         Assert.True(validator.Validate(markdown, validation).IsValid);
         Assert.True(validator.Validate(json, validation).IsValid);
+        Assert.True(validator.Validate(svg, validation).IsValid);
+        Assert.True(validator.Validate(website, validation).IsValid);
     }
 
     [Fact]

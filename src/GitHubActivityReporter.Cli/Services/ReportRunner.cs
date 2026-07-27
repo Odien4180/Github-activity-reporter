@@ -7,8 +7,10 @@ using GitHubActivityReporter.Core.State;
 using GitHubActivityReporter.Core.Validation;
 using GitHubActivityReporter.Publishing.FileSystem;
 using GitHubActivityReporter.Publishing.GitHubProfile;
+using GitHubActivityReporter.Rendering.Html;
 using GitHubActivityReporter.Rendering.Json;
 using GitHubActivityReporter.Rendering.Markdown;
+using GitHubActivityReporter.Rendering.Svg;
 using GitHubActivityReporter.Summarization.RuleBased;
 
 namespace GitHubActivityReporter.Cli.Services;
@@ -156,6 +158,16 @@ public sealed class ReportRunner
         if (configuration.Outputs.Json.Enabled)
         {
             renderers.Add(new JsonReportRenderer());
+        }
+
+        if (configuration.Outputs.Dashboard.Enabled)
+        {
+            renderers.Add(new SvgDashboardRenderer());
+        }
+
+        if (configuration.Outputs.Website.Enabled)
+        {
+            renderers.Add(new StaticHtmlReportRenderer());
         }
 
         return renderers;
