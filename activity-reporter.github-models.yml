@@ -97,7 +97,7 @@ outputs:
     renderer: svg-dashboard
     target: generated/activity-dashboard.svg
   website:
-    enabled: false
+    enabled: true
     renderer: static-html
     output_directory: generated/site
     history_days: 30
@@ -114,7 +114,7 @@ publishers:
   github_profile:
     enabled: true
   github_pages:
-    enabled: false
+    enabled: true
     output_directory: artifacts/pages
   email:
     enabled: false
