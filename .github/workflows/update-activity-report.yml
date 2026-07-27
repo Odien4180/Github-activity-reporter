@@ -21,12 +21,12 @@ jobs:
 
     steps:
       - name: Checkout reporter source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
       - name: Checkout profile repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: Odien4180/Odien4180
           ref: master
@@ -35,7 +35,7 @@ jobs:
           fetch-depth: 0
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: "10.0.x"
 
@@ -56,7 +56,23 @@ jobs:
       - name: Generate and publish activity report
         env:
           ACTIVITY_REPORTER_GITHUB_TOKEN: ${{ secrets.ACTIVITY_REPORTER_GITHUB_TOKEN }}
-        run: dotnet run --project src/GitHubActivityReporter.Cli --configuration Release --no-build -- run --config activity-reporter.yml --profile-path profile-repository --commit --push --verbose
+        run: dotnet run --project src/GitHubActivityReporter.Cli --configuration Release --no-build -- run --config activity-reporter.yml --profile-path profile-repository --verbose
 
       - name: Validate generated output
         run: dotnet run --project src/GitHubActivityReporter.Cli --configuration Release --no-build -- validate --config activity-reporter.yml --path profile-repository/generated
+
+      - name: Detect profile changes
+        id: profile_changes
+        run: |
+          if [ -n "$(git -C profile-repository status --porcelain)" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Commit and push profile changes
+        if: steps.profile_changes.outputs.changed == 'true'
+        run: |
+          git -C profile-repository add -A
+          git -C profile-repository commit -m "chore(profile): update GitHub activity report"
+          git -C profile-repository push origin HEAD:master

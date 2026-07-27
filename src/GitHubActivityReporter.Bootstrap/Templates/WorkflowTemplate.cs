@@ -34,12 +34,12 @@ public static class WorkflowTemplate
 
             steps:
               - name: Checkout reporter source
-                uses: actions/checkout@v4
+                uses: actions/checkout@v5
                 with:
                   fetch-depth: 0
 
               - name: Checkout profile repository
-                uses: actions/checkout@v4
+                uses: actions/checkout@v5
                 with:
                   repository: {{ profile_repository }}
                   ref: {{ branch }}
@@ -48,7 +48,7 @@ public static class WorkflowTemplate
                   fetch-depth: 0
 
               - name: Setup .NET
-                uses: actions/setup-dotnet@v4
+                uses: actions/setup-dotnet@v5
                 with:
                   dotnet-version: "{{ dotnet_version }}"
 
@@ -69,9 +69,25 @@ public static class WorkflowTemplate
               - name: Generate and publish activity report
                 env:
                   {{ token_secret_name }}: ${{ '{{' }} secrets.{{ token_secret_name }} {{ '}}' }}
-                run: dotnet run --project {{ cli_project_path }} --configuration Release --no-build -- run --config {{ config_path }} --profile-path {{ profile_repository_path }} --commit --push --verbose
+                run: dotnet run --project {{ cli_project_path }} --configuration Release --no-build -- run --config {{ config_path }} --profile-path {{ profile_repository_path }} --verbose
 
               - name: Validate generated output
                 run: dotnet run --project {{ cli_project_path }} --configuration Release --no-build -- validate --config {{ config_path }} --path {{ profile_repository_path }}/generated
+
+              - name: Detect profile changes
+                id: profile_changes
+                run: |
+                  if [ -n "$(git -C {{ profile_repository_path }} status --porcelain)" ]; then
+                    echo "changed=true" >> "$GITHUB_OUTPUT"
+                  else
+                    echo "changed=false" >> "$GITHUB_OUTPUT"
+                  fi
+
+              - name: Commit and push profile changes
+                if: steps.profile_changes.outputs.changed == 'true'
+                run: |
+                  git -C {{ profile_repository_path }} add -A
+                  git -C {{ profile_repository_path }} commit -m "{{ commit_message }}"
+                  git -C {{ profile_repository_path }} push origin HEAD:{{ branch }}
         """;
 }

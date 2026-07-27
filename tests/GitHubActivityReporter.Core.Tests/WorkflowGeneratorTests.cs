@@ -16,8 +16,12 @@ public sealed class WorkflowGeneratorTests
         Assert.Contains("repository: Odien4180/Odien4180", workflow, StringComparison.Ordinal);
         Assert.Contains("ref: master", workflow, StringComparison.Ordinal);
         Assert.Contains("path: profile-repository", workflow, StringComparison.Ordinal);
-        Assert.Contains("--profile-path profile-repository --commit --push", workflow, StringComparison.Ordinal);
+        Assert.Contains("--profile-path profile-repository --verbose", workflow, StringComparison.Ordinal);
+        Assert.DoesNotContain("--commit --push", workflow, StringComparison.Ordinal);
         Assert.Contains("git -C profile-repository config user.name", workflow, StringComparison.Ordinal);
-        Assert.DoesNotContain("git push origin HEAD:master", workflow, StringComparison.Ordinal);
+        Assert.Contains("git -C profile-repository status --porcelain", workflow, StringComparison.Ordinal);
+        Assert.Contains("git -C profile-repository push origin HEAD:master", workflow, StringComparison.Ordinal);
+        Assert.Contains("uses: actions/checkout@v5", workflow, StringComparison.Ordinal);
+        Assert.Contains("uses: actions/setup-dotnet@v5", workflow, StringComparison.Ordinal);
     }
 }
