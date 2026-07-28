@@ -44,7 +44,7 @@ public sealed class GitHubActivityCollector : IActivityCollector
             Credentials = new Credentials(token)
         };
 
-        return new GitHubActivityCollector(new OctokitEventSource(client), privateTerms, log);
+        return new GitHubActivityCollector(new OctokitEventSource(client, log: log), privateTerms, log);
     }
 
     public async Task<CollectedActivity> CollectAsync(

@@ -1,3 +1,4 @@
+using GitHubActivityReporter.Core.Abstractions;
 using GitHubActivityReporter.GitHub.Mapping;
 using Octokit;
 
@@ -8,13 +9,15 @@ internal sealed class OctokitEventSource : IGitHubEventSource
 {
     private readonly IGitHubClient _client;
     private readonly int _maxPages;
+    private readonly IReporterLog _log;
     private readonly Dictionary<string, GitHubRepositoryInfo?> _repositoryCache = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, int?> _pushCommitCountCache = new(StringComparer.Ordinal);
 
-    public OctokitEventSource(IGitHubClient client, int maxPages = 3)
+    public OctokitEventSource(IGitHubClient client, int maxPages = 3, IReporterLog? log = null)
     {
         _client = client ?? throw new ArgumentNullException(nameof(client));
         _maxPages = Math.Clamp(maxPages, 1, 10);
+        _log = log ?? NullReporterLog.Instance;
     }
 
     public async Task<IReadOnlyList<GitHubRawEvent>> GetUserEventsAsync(
@@ -124,12 +127,9 @@ internal sealed class OctokitEventSource : IGitHubEventSource
 
             return logins.ToArray();
         }
-        catch (NotFoundException)
-        {
-            return Array.Empty<string>();
-        }
         catch (ApiException)
         {
+            _log.Warning("GitHub organization discovery failed; private organization activity may be incomplete for this run.");
             return Array.Empty<string>();
         }
     }
