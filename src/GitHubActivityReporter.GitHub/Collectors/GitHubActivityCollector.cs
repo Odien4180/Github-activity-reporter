@@ -62,6 +62,10 @@ public sealed class GitHubActivityCollector : IActivityCollector
             .Select(g => g.First())
             .ToArray();
 
+        var rawPrivate = deduplicated.Count(e => e.IsPrivateRepository);
+        var rawInWindow = deduplicated.Count(e => request.Contains(e.OccurredAt));
+        _log.Debug($"Deduped events: {deduplicated.Length} total ({rawPrivate} private), {rawInWindow} within reporting window.");
+
         var builder = new CollectedActivityBuilder(_privateTerms);
         var metadataCache = new Dictionary<string, GitHubRepositoryInfo?>(StringComparer.OrdinalIgnoreCase);
 

@@ -45,7 +45,8 @@ internal sealed class OctokitEventSource : IGitHubEventSource
                     results,
                     since,
                     options => _client.Activity.Events.GetAllUserPerformed(userName, options),
-                    cancellationToken)
+                    cancellationToken,
+                    "user-performed")
                 .ConfigureAwait(false);
         }
 
@@ -55,9 +56,14 @@ internal sealed class OctokitEventSource : IGitHubEventSource
                     results,
                     since,
                     options => _client.Activity.Events.GetAllForAnOrganization(userName, organization, options),
-                    cancellationToken)
+                    cancellationToken,
+                    $"org:{organization}")
                 .ConfigureAwait(false);
         }
+
+        var privateCount = results.Count(e => e.IsPrivateRepository);
+        var publicCount = results.Count - privateCount;
+        _log.Debug($"Raw events fetched: {results.Count} total ({publicCount} public, {privateCount} private).");
 
         return results;
     }
@@ -75,7 +81,8 @@ internal sealed class OctokitEventSource : IGitHubEventSource
                     results,
                     since,
                     options => _apiConnection.GetAll<Activity>(new Uri(AuthenticatedUserEventsEndpoint, UriKind.Relative), options),
-                    cancellationToken)
+                    cancellationToken,
+                    "authenticated-user")
                 .ConfigureAwait(false);
 
             return true;
@@ -92,7 +99,8 @@ internal sealed class OctokitEventSource : IGitHubEventSource
         List<GitHubRawEvent> results,
         DateTimeOffset since,
         Func<ApiOptions, Task<IReadOnlyList<Activity>>> activityReader,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        string feedLabel = "feed")
     {
         for (var page = 1; page <= _maxPages; page++)
         {
@@ -103,8 +111,12 @@ internal sealed class OctokitEventSource : IGitHubEventSource
 
             if (activities.Count == 0)
             {
+                _log.Debug($"[{feedLabel}] page {page}: 0 events — stopping.");
                 break;
             }
+
+            var privateOnPage = activities.Count(a => !a.Public);
+            _log.Debug($"[{feedLabel}] page {page}: {activities.Count} events ({privateOnPage} private).");
 
             foreach (var activity in activities)
             {
