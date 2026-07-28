@@ -83,7 +83,7 @@ public sealed class OctokitEventSourceTests
 
         var start = DateTimeOffset.Parse("2026-07-26T00:00:00Z");
         connection.GetAll<Activity>(
-                Arg.Is<Uri>(uri => uri.ToString() == "user/events"),
+                Arg.Is<Uri>(uri => uri is not null && uri.ToString() == "user/events"),
                 Arg.Any<ApiOptions>())
             .Returns(Task.FromResult<IReadOnlyList<Activity>>(Array.Empty<Activity>()));
         organizations.GetAllForCurrent(Arg.Any<ApiOptions>())
@@ -135,7 +135,7 @@ public sealed class OctokitEventSourceTests
 
         var start = DateTimeOffset.Parse("2026-07-26T00:00:00Z");
         connection.GetAll<Activity>(
-                Arg.Is<Uri>(uri => uri.ToString() == "user/events"),
+                Arg.Is<Uri>(uri => uri is not null && uri.ToString() == "user/events"),
                 Arg.Any<ApiOptions>())
             .Returns(
                 Task.FromResult<IReadOnlyList<Activity>>(
@@ -178,7 +178,7 @@ public sealed class OctokitEventSourceTests
 
         var start = DateTimeOffset.Parse("2026-07-26T00:00:00Z");
         connection.GetAll<Activity>(
-                Arg.Is<Uri>(uri => uri.ToString() == "user/events"),
+                Arg.Is<Uri>(uri => uri is not null && uri.ToString() == "user/events"),
                 Arg.Any<ApiOptions>())
             .Returns<Task<IReadOnlyList<Activity>>>(_ => throw new ApiException("not found", HttpStatusCode.NotFound));
         eventsClient.GetAllUserPerformed(
@@ -208,7 +208,7 @@ public sealed class OctokitEventSourceTests
         var commit = Assert.Single(events);
         Assert.Equal("example-user/public-repository", commit.RepositoryFullName);
         Assert.False(commit.IsPrivateRepository);
-        await eventsClient.Received(1).GetAllUserPerformed("example-user", Arg.Any<ApiOptions>());
+        await eventsClient.Received(2).GetAllUserPerformed("example-user", Arg.Any<ApiOptions>());
     }
 
     private static Organization CreateOrganization(string login) => new(
