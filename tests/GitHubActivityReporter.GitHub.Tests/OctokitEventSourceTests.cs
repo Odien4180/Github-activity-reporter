@@ -137,18 +137,20 @@ public sealed class OctokitEventSourceTests
         connection.GetAll<Activity>(
                 Arg.Is<Uri>(uri => uri.ToString() == "user/events"),
                 Arg.Any<ApiOptions>())
-            .Returns(Task.FromResult<IReadOnlyList<Activity>>(
-            [
-                new Activity(
-                    "PushEvent",
-                    false,
-                    CreateRepository("example-user/private-repository", isPrivate: true),
-                    null!,
-                    null!,
-                    start.AddHours(1),
-                    "private-push",
-                    null!)
-            ]));
+            .Returns(
+                Task.FromResult<IReadOnlyList<Activity>>(
+                [
+                    new Activity(
+                        "PushEvent",
+                        false,
+                        CreateRepository("example-user/private-repository", isPrivate: true),
+                        null!,
+                        null!,
+                        start.AddHours(1),
+                        "private-push",
+                        null!)
+                ]),
+                Task.FromResult<IReadOnlyList<Activity>>(Array.Empty<Activity>()));
         organizations.GetAllForCurrent(Arg.Any<ApiOptions>())
             .Returns(Task.FromResult<IReadOnlyList<Organization>>(Array.Empty<Organization>()));
 
@@ -182,18 +184,20 @@ public sealed class OctokitEventSourceTests
         eventsClient.GetAllUserPerformed(
                 "example-user",
                 Arg.Any<ApiOptions>())
-            .Returns(Task.FromResult<IReadOnlyList<Activity>>(
-            [
-                new Activity(
-                    "PushEvent",
-                    true,
-                    CreateRepository("example-user/public-repository", isPrivate: false),
-                    null!,
-                    null!,
-                    start.AddHours(1),
-                    "public-push",
-                    null!)
-            ]));
+            .Returns(
+                Task.FromResult<IReadOnlyList<Activity>>(
+                [
+                    new Activity(
+                        "PushEvent",
+                        true,
+                        CreateRepository("example-user/public-repository", isPrivate: false),
+                        null!,
+                        null!,
+                        start.AddHours(1),
+                        "public-push",
+                        null!)
+                ]),
+                Task.FromResult<IReadOnlyList<Activity>>(Array.Empty<Activity>()));
         organizations.GetAllForCurrent(Arg.Any<ApiOptions>())
             .Returns(Task.FromResult<IReadOnlyList<Organization>>(Array.Empty<Organization>()));
 
