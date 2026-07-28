@@ -1,3 +1,4 @@
+using GitHubActivityReporter.Core.Models;
 using GitHubActivityReporter.GitHub.Api;
 using NSubstitute;
 using Octokit;
@@ -63,5 +64,57 @@ public sealed class OctokitEventSourceTests
             CancellationToken.None);
 
         Assert.Null(count);
+    }
+
+    [Fact]
+    public async Task GetUserEventsAsync_includes_organization_scoped_private_events()
+    {
+        var client = Substitute.For<IGitHubClient>();
+        var activities = Substitute.For<IActivitiesClient>();
+        var eventsClient = Substitute.For<IEventsClient>();
+        var organizations = Substitute.For<IOrganizationsClient>();
+        client.Activity.Returns(activities);
+        activities.Events.Returns(eventsClient);
+        client.Organization.Returns(organizations);
+
+        var start = DateTimeOffset.Parse("2026-07-26T00:00:00Z");
+        eventsClient.GetAllUserPerformed(
+                "example-user",
+                Arg.Any<ApiOptions>())
+            .Returns(Task.FromResult<IReadOnlyList<Activity>>(Array.Empty<Activity>()));
+        organizations.GetAllForCurrent(Arg.Any<ApiOptions>())
+            .Returns(Task.FromResult<IReadOnlyList<Organization>>(
+            [
+                new Organization { Login = "example-org" }
+            ]));
+        eventsClient.GetAllForAnOrganization(
+                "example-user",
+                "example-org",
+                Arg.Any<ApiOptions>())
+            .Returns(Task.FromResult<IReadOnlyList<Activity>>(
+            [
+                new Activity
+                {
+                    Id = "org-private-push",
+                    Type = "PushEvent",
+                    Public = false,
+                    CreatedAt = start.AddHours(1),
+                    Repo = new Repository
+                    {
+                        Name = "example-org/private-repository",
+                        FullName = "example-org/private-repository",
+                        Private = true
+                    }
+                }
+            ]));
+
+        var source = new OctokitEventSource(client);
+
+        var events = await source.GetUserEventsAsync("example-user", start, CancellationToken.None);
+
+        var commit = Assert.Single(events);
+        Assert.Equal("example-org/private-repository", commit.RepositoryFullName);
+        Assert.True(commit.IsPrivateRepository);
+        Assert.Equal(ActivityType.Commit, commit.Type);
     }
 }

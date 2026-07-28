@@ -26,14 +26,38 @@ internal sealed class OctokitEventSource : IGitHubEventSource
 
         var results = new List<GitHubRawEvent>();
 
+        await AppendActivitiesAsync(
+                results,
+                since,
+                options => _client.Activity.Events.GetAllUserPerformed(userName, options),
+                cancellationToken)
+            .ConfigureAwait(false);
+
+        foreach (var organization in await GetCurrentOrganizationLoginsAsync(cancellationToken).ConfigureAwait(false))
+        {
+            await AppendActivitiesAsync(
+                    results,
+                    since,
+                    options => _client.Activity.Events.GetAllForAnOrganization(userName, organization, options),
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        return results;
+    }
+
+    private async Task AppendActivitiesAsync(
+        List<GitHubRawEvent> results,
+        DateTimeOffset since,
+        Func<ApiOptions, Task<IReadOnlyList<Activity>>> activityReader,
+        CancellationToken cancellationToken)
+    {
         for (var page = 1; page <= _maxPages; page++)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
             var options = new ApiOptions { PageSize = 100, PageCount = 1, StartPage = page };
-            var activities = await _client.Activity.Events
-                .GetAllUserPerformed(userName, options)
-                .ConfigureAwait(false);
+            var activities = await activityReader(options).ConfigureAwait(false);
 
             if (activities.Count == 0)
             {
@@ -64,8 +88,32 @@ internal sealed class OctokitEventSource : IGitHubEventSource
                 break;
             }
         }
+    }
 
-        return results;
+    private async Task<IReadOnlyList<string>> GetCurrentOrganizationLoginsAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        try
+        {
+            var organizations = await _client.Organization
+                .GetAllForCurrent(new ApiOptions { PageSize = 100, PageCount = 1, StartPage = 1 })
+                .ConfigureAwait(false);
+
+            return organizations
+                .Select(organization => organization.Login)
+                .Where(login => !string.IsNullOrWhiteSpace(login))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray()!;
+        }
+        catch (NotFoundException)
+        {
+            return Array.Empty<string>();
+        }
+        catch (ApiException)
+        {
+            return Array.Empty<string>();
+        }
     }
 
     internal async Task<int?> TryGetComparedCommitCountAsync(
