@@ -21,6 +21,8 @@ internal sealed class OctokitEventSource : IGitHubEventSource
         IApiConnection? apiConnection = null)
     {
         _client = client ?? throw new ArgumentNullException(nameof(client));
+        // Tests can inject a stubbed API connection. Production uses the client's
+        // configured connection so authentication and transport settings stay aligned.
         _apiConnection = apiConnection ?? new ApiConnection(client.Connection);
         _maxPages = Math.Clamp(maxPages, 1, 10);
         _log = log ?? NullReporterLog.Instance;
@@ -65,6 +67,8 @@ internal sealed class OctokitEventSource : IGitHubEventSource
     {
         try
         {
+            // Prefer the authenticated-user feed because it can include private
+            // repository activity for the token owner during workflow runs.
             await AppendActivitiesAsync(
                     results,
                     since,
@@ -74,12 +78,10 @@ internal sealed class OctokitEventSource : IGitHubEventSource
 
             return true;
         }
-        catch (NotFoundException)
-        {
-            return false;
-        }
         catch (ApiException)
         {
+            // Fall back to the username-scoped feed for older environments or
+            // credentials that do not expose the authenticated-user endpoint.
             return false;
         }
     }
