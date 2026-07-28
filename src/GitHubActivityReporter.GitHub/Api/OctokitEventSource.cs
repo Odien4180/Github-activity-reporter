@@ -7,6 +7,8 @@ namespace GitHubActivityReporter.GitHub.Api;
 /// <summary>Reads the authenticated user's activity feed through the GitHub REST API.</summary>
 internal sealed class OctokitEventSource : IGitHubEventSource
 {
+    internal const string AuthenticatedUserEventsEndpoint = "user/events";
+
     private readonly IGitHubClient _client;
     private readonly IApiConnection _apiConnection;
     private readonly int _maxPages;
@@ -72,7 +74,7 @@ internal sealed class OctokitEventSource : IGitHubEventSource
             await AppendActivitiesAsync(
                     results,
                     since,
-                    options => _apiConnection.GetAll<Activity>(new Uri("user/events", UriKind.Relative), options),
+                    options => _apiConnection.GetAll<Activity>(new Uri(AuthenticatedUserEventsEndpoint, UriKind.Relative), options),
                     cancellationToken)
                 .ConfigureAwait(false);
 

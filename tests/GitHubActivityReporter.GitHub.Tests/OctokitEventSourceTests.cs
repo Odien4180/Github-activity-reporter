@@ -83,7 +83,7 @@ public sealed class OctokitEventSourceTests
 
         var start = DateTimeOffset.Parse("2026-07-26T00:00:00Z");
         connection.GetAll<Activity>(
-                Arg.Is<Uri>(uri => uri != null && uri.ToString() == "user/events"),
+                Arg.Is<Uri>(MatchesAuthenticatedUserEventsUri),
                 Arg.Any<ApiOptions>())
             .Returns(Task.FromResult<IReadOnlyList<Activity>>(Array.Empty<Activity>()));
         organizations.GetAllForCurrent(Arg.Any<ApiOptions>())
@@ -135,7 +135,7 @@ public sealed class OctokitEventSourceTests
 
         var start = DateTimeOffset.Parse("2026-07-26T00:00:00Z");
         connection.GetAll<Activity>(
-                Arg.Is<Uri>(uri => uri != null && uri.ToString() == "user/events"),
+                Arg.Is<Uri>(MatchesAuthenticatedUserEventsUri),
                 Arg.Any<ApiOptions>())
             .Returns(
                 Task.FromResult<IReadOnlyList<Activity>>(
@@ -178,7 +178,7 @@ public sealed class OctokitEventSourceTests
 
         var start = DateTimeOffset.Parse("2026-07-26T00:00:00Z");
         connection.GetAll<Activity>(
-                Arg.Is<Uri>(uri => uri != null && uri.ToString() == "user/events"),
+                Arg.Is<Uri>(MatchesAuthenticatedUserEventsUri),
                 Arg.Any<ApiOptions>())
             .Returns<Task<IReadOnlyList<Activity>>>(_ => throw new ApiException("not found", HttpStatusCode.NotFound));
         eventsClient.GetAllUserPerformed(
@@ -248,6 +248,9 @@ public sealed class OctokitEventSourceTests
         hasOrganizationProjects: false,
         hasRepositoryProjects: false,
         updatedAt: DateTimeOffset.UnixEpoch);
+
+    private static bool MatchesAuthenticatedUserEventsUri(Uri? uri)
+        => uri is not null && uri.ToString() == OctokitEventSource.AuthenticatedUserEventsEndpoint;
 
     private static Repository CreateRepository(string fullName, bool isPrivate)
     {
