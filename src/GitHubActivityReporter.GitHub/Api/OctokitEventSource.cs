@@ -29,12 +29,15 @@ internal sealed class OctokitEventSource : IGitHubEventSource
 
         var results = new List<GitHubRawEvent>();
 
-        await AppendActivitiesAsync(
-                results,
-                since,
-                options => _client.Activity.Events.GetAllUserPerformed(userName, options),
-                cancellationToken)
-            .ConfigureAwait(false);
+        if (!await TryAppendAuthenticatedUserActivitiesAsync(results, since, cancellationToken).ConfigureAwait(false))
+        {
+            await AppendActivitiesAsync(
+                    results,
+                    since,
+                    options => _client.Activity.Events.GetAllUserPerformed(userName, options),
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }
 
         foreach (var organization in await GetCurrentOrganizationLoginsAsync(cancellationToken).ConfigureAwait(false))
         {
@@ -47,6 +50,32 @@ internal sealed class OctokitEventSource : IGitHubEventSource
         }
 
         return results;
+    }
+
+    private async Task<bool> TryAppendAuthenticatedUserActivitiesAsync(
+        List<GitHubRawEvent> results,
+        DateTimeOffset since,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await AppendActivitiesAsync(
+                    results,
+                    since,
+                    options => _client.Connection.GetAll<Activity>(new Uri("user/events", UriKind.Relative), options),
+                    cancellationToken)
+                .ConfigureAwait(false);
+
+            return true;
+        }
+        catch (NotFoundException)
+        {
+            return false;
+        }
+        catch (ApiException)
+        {
+            return false;
+        }
     }
 
     private async Task AppendActivitiesAsync(

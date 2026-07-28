@@ -2,6 +2,7 @@ using GitHubActivityReporter.Core.Models;
 using GitHubActivityReporter.GitHub.Api;
 using NSubstitute;
 using Octokit;
+using System.Net;
 
 namespace GitHubActivityReporter.GitHub.Tests;
 
@@ -70,16 +71,18 @@ public sealed class OctokitEventSourceTests
     public async Task GetUserEventsAsync_includes_organization_scoped_private_events()
     {
         var client = Substitute.For<IGitHubClient>();
+        var connection = Substitute.For<IApiConnection>();
         var activities = Substitute.For<IActivitiesClient>();
         var eventsClient = Substitute.For<IEventsClient>();
         var organizations = Substitute.For<IOrganizationsClient>();
+        client.Connection.Returns(connection);
         client.Activity.Returns(activities);
         activities.Events.Returns(eventsClient);
         client.Organization.Returns(organizations);
 
         var start = DateTimeOffset.Parse("2026-07-26T00:00:00Z");
-        eventsClient.GetAllUserPerformed(
-                "example-user",
+        connection.GetAll<Activity>(
+                Arg.Is<Uri>(uri => uri.ToString() == "user/events"),
                 Arg.Any<ApiOptions>())
             .Returns(Task.FromResult<IReadOnlyList<Activity>>(Array.Empty<Activity>()));
         organizations.GetAllForCurrent(Arg.Any<ApiOptions>())
@@ -115,6 +118,94 @@ public sealed class OctokitEventSourceTests
         Assert.Equal("example-org/private-repository", commit.RepositoryFullName);
         Assert.True(commit.IsPrivateRepository);
         Assert.Equal(ActivityType.Commit, commit.Type);
+    }
+
+    [Fact]
+    public async Task GetUserEventsAsync_prefers_authenticated_user_feed_for_private_events()
+    {
+        var client = Substitute.For<IGitHubClient>();
+        var connection = Substitute.For<IApiConnection>();
+        var activities = Substitute.For<IActivitiesClient>();
+        var eventsClient = Substitute.For<IEventsClient>();
+        var organizations = Substitute.For<IOrganizationsClient>();
+        client.Connection.Returns(connection);
+        client.Activity.Returns(activities);
+        activities.Events.Returns(eventsClient);
+        client.Organization.Returns(organizations);
+
+        var start = DateTimeOffset.Parse("2026-07-26T00:00:00Z");
+        connection.GetAll<Activity>(
+                Arg.Is<Uri>(uri => uri.ToString() == "user/events"),
+                Arg.Any<ApiOptions>())
+            .Returns(Task.FromResult<IReadOnlyList<Activity>>(
+            [
+                new Activity(
+                    "PushEvent",
+                    false,
+                    CreateRepository("example-user/private-repository", isPrivate: true),
+                    null!,
+                    null!,
+                    start.AddHours(1),
+                    "private-push",
+                    null!)
+            ]));
+        organizations.GetAllForCurrent(Arg.Any<ApiOptions>())
+            .Returns(Task.FromResult<IReadOnlyList<Organization>>(Array.Empty<Organization>()));
+
+        var source = new OctokitEventSource(client);
+
+        var events = await source.GetUserEventsAsync("example-user", start, CancellationToken.None);
+
+        var commit = Assert.Single(events);
+        Assert.Equal("example-user/private-repository", commit.RepositoryFullName);
+        Assert.True(commit.IsPrivateRepository);
+        await eventsClient.DidNotReceive().GetAllUserPerformed("example-user", Arg.Any<ApiOptions>());
+    }
+
+    [Fact]
+    public async Task GetUserEventsAsync_falls_back_to_username_feed_when_authenticated_route_is_unavailable()
+    {
+        var client = Substitute.For<IGitHubClient>();
+        var connection = Substitute.For<IApiConnection>();
+        var activities = Substitute.For<IActivitiesClient>();
+        var eventsClient = Substitute.For<IEventsClient>();
+        var organizations = Substitute.For<IOrganizationsClient>();
+        client.Connection.Returns(connection);
+        client.Activity.Returns(activities);
+        activities.Events.Returns(eventsClient);
+        client.Organization.Returns(organizations);
+
+        var start = DateTimeOffset.Parse("2026-07-26T00:00:00Z");
+        connection.GetAll<Activity>(
+                Arg.Is<Uri>(uri => uri.ToString() == "user/events"),
+                Arg.Any<ApiOptions>())
+            .Returns<Task<IReadOnlyList<Activity>>>(_ => throw new ApiException("not found", HttpStatusCode.NotFound));
+        eventsClient.GetAllUserPerformed(
+                "example-user",
+                Arg.Any<ApiOptions>())
+            .Returns(Task.FromResult<IReadOnlyList<Activity>>(
+            [
+                new Activity(
+                    "PushEvent",
+                    true,
+                    CreateRepository("example-user/public-repository", isPrivate: false),
+                    null!,
+                    null!,
+                    start.AddHours(1),
+                    "public-push",
+                    null!)
+            ]));
+        organizations.GetAllForCurrent(Arg.Any<ApiOptions>())
+            .Returns(Task.FromResult<IReadOnlyList<Organization>>(Array.Empty<Organization>()));
+
+        var source = new OctokitEventSource(client);
+
+        var events = await source.GetUserEventsAsync("example-user", start, CancellationToken.None);
+
+        var commit = Assert.Single(events);
+        Assert.Equal("example-user/public-repository", commit.RepositoryFullName);
+        Assert.False(commit.IsPrivateRepository);
+        await eventsClient.Received(1).GetAllUserPerformed("example-user", Arg.Any<ApiOptions>());
     }
 
     private static Organization CreateOrganization(string login) => new(
