@@ -1,3 +1,4 @@
+using GitHubActivityReporter.Core.Abstractions;
 using GitHubActivityReporter.GitHub.Mapping;
 using Octokit;
 
@@ -6,15 +7,27 @@ namespace GitHubActivityReporter.GitHub.Api;
 /// <summary>Reads the authenticated user's activity feed through the GitHub REST API.</summary>
 internal sealed class OctokitEventSource : IGitHubEventSource
 {
+    internal const string AuthenticatedUserEventsEndpoint = "user/events";
+
     private readonly IGitHubClient _client;
+    private readonly IApiConnection _apiConnection;
     private readonly int _maxPages;
+    private readonly IReporterLog _log;
     private readonly Dictionary<string, GitHubRepositoryInfo?> _repositoryCache = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, int?> _pushCommitCountCache = new(StringComparer.Ordinal);
 
-    public OctokitEventSource(IGitHubClient client, int maxPages = 3)
+    public OctokitEventSource(
+        IGitHubClient client,
+        int maxPages = 3,
+        IReporterLog? log = null,
+        IApiConnection? apiConnection = null)
     {
         _client = client ?? throw new ArgumentNullException(nameof(client));
+        // Tests can inject a stubbed API connection. Production uses the client's
+        // configured connection so authentication and transport settings stay aligned.
+        _apiConnection = apiConnection ?? new ApiConnection(client.Connection);
         _maxPages = Math.Clamp(maxPages, 1, 10);
+        _log = log ?? NullReporterLog.Instance;
     }
 
     public async Task<IReadOnlyList<GitHubRawEvent>> GetUserEventsAsync(
@@ -26,19 +39,84 @@ internal sealed class OctokitEventSource : IGitHubEventSource
 
         var results = new List<GitHubRawEvent>();
 
+        if (!await TryAppendAuthenticatedUserActivitiesAsync(results, since, cancellationToken).ConfigureAwait(false))
+        {
+            await AppendActivitiesAsync(
+                    results,
+                    since,
+                    options => _client.Activity.Events.GetAllUserPerformed(userName, options),
+                    cancellationToken,
+                    "user-performed")
+                .ConfigureAwait(false);
+        }
+
+        foreach (var organization in await GetCurrentOrganizationLoginsAsync(cancellationToken).ConfigureAwait(false))
+        {
+            await AppendActivitiesAsync(
+                    results,
+                    since,
+                    options => _client.Activity.Events.GetAllForAnOrganization(userName, organization, options),
+                    cancellationToken,
+                    $"org:{organization}")
+                .ConfigureAwait(false);
+        }
+
+        var privateCount = results.Count(e => e.IsPrivateRepository);
+        var publicCount = results.Count - privateCount;
+        _log.Debug($"Raw events fetched: {results.Count} total ({publicCount} public, {privateCount} private).");
+
+        return results;
+    }
+
+    private async Task<bool> TryAppendAuthenticatedUserActivitiesAsync(
+        List<GitHubRawEvent> results,
+        DateTimeOffset since,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            // Prefer the authenticated-user feed because it can include private
+            // repository activity for the token owner during workflow runs.
+            await AppendActivitiesAsync(
+                    results,
+                    since,
+                    options => _apiConnection.GetAll<Activity>(new Uri(AuthenticatedUserEventsEndpoint, UriKind.Relative), options),
+                    cancellationToken,
+                    "authenticated-user")
+                .ConfigureAwait(false);
+
+            return true;
+        }
+        catch (ApiException)
+        {
+            // Fall back to the username-scoped feed for older environments or
+            // credentials that do not expose the authenticated-user endpoint.
+            return false;
+        }
+    }
+
+    private async Task AppendActivitiesAsync(
+        List<GitHubRawEvent> results,
+        DateTimeOffset since,
+        Func<ApiOptions, Task<IReadOnlyList<Activity>>> activityReader,
+        CancellationToken cancellationToken,
+        string feedLabel = "feed")
+    {
         for (var page = 1; page <= _maxPages; page++)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
             var options = new ApiOptions { PageSize = 100, PageCount = 1, StartPage = page };
-            var activities = await _client.Activity.Events
-                .GetAllUserPerformed(userName, options)
-                .ConfigureAwait(false);
+            var activities = await activityReader(options).ConfigureAwait(false);
 
             if (activities.Count == 0)
             {
+                _log.Debug($"[{feedLabel}] page {page}: 0 events — stopping.");
                 break;
             }
+
+            var privateOnPage = activities.Count(a => !a.Public);
+            _log.Debug($"[{feedLabel}] page {page}: {activities.Count} events ({privateOnPage} private).");
 
             foreach (var activity in activities)
             {
@@ -64,8 +142,47 @@ internal sealed class OctokitEventSource : IGitHubEventSource
                 break;
             }
         }
+    }
 
-        return results;
+    private async Task<IReadOnlyList<string>> GetCurrentOrganizationLoginsAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        try
+        {
+            var logins = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            for (var page = 1; page <= _maxPages; page++)
+            {
+                var organizations = await _client.Organization
+                    .GetAllForCurrent(new ApiOptions { PageSize = 100, PageCount = 1, StartPage = page })
+                    .ConfigureAwait(false);
+
+                if (organizations.Count == 0)
+                {
+                    break;
+                }
+
+                foreach (var login in organizations
+                             .Select(organization => organization.Login)
+                             .Where(login => !string.IsNullOrWhiteSpace(login)))
+                {
+                    logins.Add(login);
+                }
+
+                if (organizations.Count < 100)
+                {
+                    break;
+                }
+            }
+
+            return logins.ToArray();
+        }
+        catch (ApiException)
+        {
+            _log.Warning("GitHub organization discovery failed; private organization activity may be incomplete for this run.");
+            return Array.Empty<string>();
+        }
     }
 
     internal async Task<int?> TryGetComparedCommitCountAsync(
