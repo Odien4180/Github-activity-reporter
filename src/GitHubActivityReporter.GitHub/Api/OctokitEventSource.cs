@@ -96,15 +96,33 @@ internal sealed class OctokitEventSource : IGitHubEventSource
 
         try
         {
-            var organizations = await _client.Organization
-                .GetAllForCurrent(new ApiOptions { PageSize = 100, PageCount = 1, StartPage = 1 })
-                .ConfigureAwait(false);
+            var logins = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-            return organizations
-                .Select(organization => organization.Login)
-                .Where(login => !string.IsNullOrWhiteSpace(login))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToArray()!;
+            for (var page = 1; page <= _maxPages; page++)
+            {
+                var organizations = await _client.Organization
+                    .GetAllForCurrent(new ApiOptions { PageSize = 100, PageCount = 1, StartPage = page })
+                    .ConfigureAwait(false);
+
+                if (organizations.Count == 0)
+                {
+                    break;
+                }
+
+                foreach (var login in organizations
+                             .Select(organization => organization.Login)
+                             .Where(login => !string.IsNullOrWhiteSpace(login)))
+                {
+                    logins.Add(login);
+                }
+
+                if (organizations.Count < 100)
+                {
+                    break;
+                }
+            }
+
+            return logins.ToArray();
         }
         catch (NotFoundException)
         {

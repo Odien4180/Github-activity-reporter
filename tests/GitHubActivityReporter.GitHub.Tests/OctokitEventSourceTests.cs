@@ -85,28 +85,27 @@ public sealed class OctokitEventSourceTests
         organizations.GetAllForCurrent(Arg.Any<ApiOptions>())
             .Returns(Task.FromResult<IReadOnlyList<Organization>>(
             [
-                new Organization { Login = "example-org" }
+                CreateOrganization("example-org")
             ]));
+        var organizationEvents = Task.FromResult<IReadOnlyList<Activity>>(
+        [
+            new Activity(
+                "PushEvent",
+                false,
+                CreateRepository("example-org/private-repository", isPrivate: true),
+                null!,
+                null!,
+                start.AddHours(1),
+                "org-private-push",
+                null!)
+        ]);
         eventsClient.GetAllForAnOrganization(
                 "example-user",
                 "example-org",
                 Arg.Any<ApiOptions>())
-            .Returns(Task.FromResult<IReadOnlyList<Activity>>(
-            [
-                new Activity
-                {
-                    Id = "org-private-push",
-                    Type = "PushEvent",
-                    Public = false,
-                    CreatedAt = start.AddHours(1),
-                    Repo = new Repository
-                    {
-                        Name = "example-org/private-repository",
-                        FullName = "example-org/private-repository",
-                        Private = true
-                    }
-                }
-            ]));
+            .Returns(
+                organizationEvents,
+                Task.FromResult<IReadOnlyList<Activity>>(Array.Empty<Activity>()));
 
         var source = new OctokitEventSource(client);
 
@@ -116,5 +115,101 @@ public sealed class OctokitEventSourceTests
         Assert.Equal("example-org/private-repository", commit.RepositoryFullName);
         Assert.True(commit.IsPrivateRepository);
         Assert.Equal(ActivityType.Commit, commit.Type);
+    }
+
+    private static Organization CreateOrganization(string login) => new(
+        avatarUrl: string.Empty,
+        bio: string.Empty,
+        blog: string.Empty,
+        collaborators: 0,
+        company: string.Empty,
+        createdAt: DateTimeOffset.UnixEpoch,
+        diskUsage: 0,
+        email: string.Empty,
+        followers: 0,
+        following: 0,
+        hireable: null,
+        htmlUrl: string.Empty,
+        totalPrivateRepos: 0,
+        id: 1,
+        nodeId: "ORG_node",
+        location: string.Empty,
+        login: login,
+        name: login,
+        ownedPrivateRepos: 0,
+        plan: null!,
+        privateGists: 0,
+        publicGists: 0,
+        publicRepos: 0,
+        url: string.Empty,
+        billingAddress: string.Empty,
+        reposUrl: string.Empty,
+        eventsUrl: string.Empty,
+        hooksUrl: string.Empty,
+        issuesUrl: string.Empty,
+        membersUrl: string.Empty,
+        publicMembersUrl: string.Empty,
+        description: string.Empty,
+        isVerified: false,
+        hasOrganizationProjects: false,
+        hasRepositoryProjects: false,
+        updatedAt: DateTimeOffset.UnixEpoch);
+
+    private static Repository CreateRepository(string fullName, bool isPrivate)
+    {
+        var separator = fullName.IndexOf('/');
+        var owner = fullName[..separator];
+        var name = fullName[(separator + 1)..];
+
+        return new Repository(
+            url: $"https://api.github.com/repos/{owner}/{name}",
+            htmlUrl: $"https://github.com/{fullName}",
+            cloneUrl: string.Empty,
+            gitUrl: string.Empty,
+            sshUrl: string.Empty,
+            svnUrl: string.Empty,
+            mirrorUrl: string.Empty,
+            archiveUrl: string.Empty,
+            id: 1,
+            nodeId: "REPO_node",
+            owner: null!,
+            name: fullName,
+            fullName: fullName,
+            isTemplate: false,
+            defaultBranch: "main",
+            description: string.Empty,
+            homepage: string.Empty,
+            language: string.Empty,
+            @private: isPrivate,
+            fork: false,
+            forksCount: 0,
+            stargazersCount: 0,
+            openIssuesCount: 0,
+            pushedAt: DateTimeOffset.UnixEpoch,
+            createdAt: DateTimeOffset.UnixEpoch,
+            updatedAt: DateTimeOffset.UnixEpoch,
+            permissions: null!,
+            parent: null!,
+            source: null!,
+            license: null!,
+            hasDiscussions: false,
+            hasIssues: true,
+            hasWiki: true,
+            hasDownloads: true,
+            hasPages: false,
+            subscribersCount: 0,
+            size: 0,
+            allowRebaseMerge: null,
+            allowSquashMerge: null,
+            allowMergeCommit: null,
+            archived: false,
+            watchersCount: 0,
+            deleteBranchOnMerge: false,
+            visibility: isPrivate ? RepositoryVisibility.Private : RepositoryVisibility.Public,
+            topics: Array.Empty<string>(),
+            allowAutoMerge: null,
+            allowUpdateBranch: null,
+            webCommitSignoffRequired: null,
+            securityAndAnalysis: null!);
     }
 }
