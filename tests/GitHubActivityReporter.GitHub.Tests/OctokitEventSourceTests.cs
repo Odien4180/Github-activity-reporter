@@ -35,7 +35,7 @@ public sealed class OctokitEventSourceTests
         commits.Compare("owner", "repository", "before", "head")
             .Returns(Task.FromResult(comparison));
 
-        var source = new OctokitEventSource(client);
+        var source = new OctokitEventSource(client, apiConnection: Substitute.For<IApiConnection>());
 
         var count = await source.TryGetComparedCommitCountAsync(
             "owner/repository",
@@ -56,7 +56,9 @@ public sealed class OctokitEventSourceTests
         string? before,
         string? head)
     {
-        var source = new OctokitEventSource(Substitute.For<IGitHubClient>());
+        var source = new OctokitEventSource(
+            Substitute.For<IGitHubClient>(),
+            apiConnection: Substitute.For<IApiConnection>());
 
         var count = await source.TryGetComparedCommitCountAsync(
             repository,
@@ -75,7 +77,6 @@ public sealed class OctokitEventSourceTests
         var activities = Substitute.For<IActivitiesClient>();
         var eventsClient = Substitute.For<IEventsClient>();
         var organizations = Substitute.For<IOrganizationsClient>();
-        client.Connection.Returns(connection);
         client.Activity.Returns(activities);
         activities.Events.Returns(eventsClient);
         client.Organization.Returns(organizations);
@@ -110,7 +111,7 @@ public sealed class OctokitEventSourceTests
                 organizationEvents,
                 Task.FromResult<IReadOnlyList<Activity>>(Array.Empty<Activity>()));
 
-        var source = new OctokitEventSource(client);
+        var source = new OctokitEventSource(client, apiConnection: connection);
 
         var events = await source.GetUserEventsAsync("example-user", start, CancellationToken.None);
 
@@ -128,7 +129,6 @@ public sealed class OctokitEventSourceTests
         var activities = Substitute.For<IActivitiesClient>();
         var eventsClient = Substitute.For<IEventsClient>();
         var organizations = Substitute.For<IOrganizationsClient>();
-        client.Connection.Returns(connection);
         client.Activity.Returns(activities);
         activities.Events.Returns(eventsClient);
         client.Organization.Returns(organizations);
@@ -152,7 +152,7 @@ public sealed class OctokitEventSourceTests
         organizations.GetAllForCurrent(Arg.Any<ApiOptions>())
             .Returns(Task.FromResult<IReadOnlyList<Organization>>(Array.Empty<Organization>()));
 
-        var source = new OctokitEventSource(client);
+        var source = new OctokitEventSource(client, apiConnection: connection);
 
         var events = await source.GetUserEventsAsync("example-user", start, CancellationToken.None);
 
@@ -170,7 +170,6 @@ public sealed class OctokitEventSourceTests
         var activities = Substitute.For<IActivitiesClient>();
         var eventsClient = Substitute.For<IEventsClient>();
         var organizations = Substitute.For<IOrganizationsClient>();
-        client.Connection.Returns(connection);
         client.Activity.Returns(activities);
         activities.Events.Returns(eventsClient);
         client.Organization.Returns(organizations);
@@ -198,7 +197,7 @@ public sealed class OctokitEventSourceTests
         organizations.GetAllForCurrent(Arg.Any<ApiOptions>())
             .Returns(Task.FromResult<IReadOnlyList<Organization>>(Array.Empty<Organization>()));
 
-        var source = new OctokitEventSource(client);
+        var source = new OctokitEventSource(client, apiConnection: connection);
 
         var events = await source.GetUserEventsAsync("example-user", start, CancellationToken.None);
 

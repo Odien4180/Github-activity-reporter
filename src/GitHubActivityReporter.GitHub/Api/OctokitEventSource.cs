@@ -8,14 +8,20 @@ namespace GitHubActivityReporter.GitHub.Api;
 internal sealed class OctokitEventSource : IGitHubEventSource
 {
     private readonly IGitHubClient _client;
+    private readonly IApiConnection _apiConnection;
     private readonly int _maxPages;
     private readonly IReporterLog _log;
     private readonly Dictionary<string, GitHubRepositoryInfo?> _repositoryCache = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, int?> _pushCommitCountCache = new(StringComparer.Ordinal);
 
-    public OctokitEventSource(IGitHubClient client, int maxPages = 3, IReporterLog? log = null)
+    public OctokitEventSource(
+        IGitHubClient client,
+        int maxPages = 3,
+        IReporterLog? log = null,
+        IApiConnection? apiConnection = null)
     {
         _client = client ?? throw new ArgumentNullException(nameof(client));
+        _apiConnection = apiConnection ?? new ApiConnection(client.Connection);
         _maxPages = Math.Clamp(maxPages, 1, 10);
         _log = log ?? NullReporterLog.Instance;
     }
@@ -62,7 +68,7 @@ internal sealed class OctokitEventSource : IGitHubEventSource
             await AppendActivitiesAsync(
                     results,
                     since,
-                    options => _client.Connection.GetAll<Activity>(new Uri("user/events", UriKind.Relative), options),
+                    options => _apiConnection.GetAll<Activity>(new Uri("user/events", UriKind.Relative), options),
                     cancellationToken)
                 .ConfigureAwait(false);
 
