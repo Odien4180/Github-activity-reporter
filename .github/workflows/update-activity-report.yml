@@ -33,7 +33,7 @@ jobs:
           ref: master
           path: profile-repository
           token: ${{ secrets.ACTIVITY_REPORTER_GITHUB_TOKEN }}
-          fetch-depth: 0
+          fetch-depth: 1
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
@@ -76,8 +76,8 @@ jobs:
         if: steps.profile_changes.outputs.changed == 'true'
         run: |
           git -C profile-repository add -A
-          git -C profile-repository commit -m "chore(profile): update GitHub activity report"
-          git -C profile-repository push origin HEAD:master
+          git -C profile-repository commit --amend --no-edit --reset-author
+          git -C profile-repository push origin HEAD:master --force
 
       - name: Upload GitHub Pages artifact
         uses: actions/upload-pages-artifact@v4

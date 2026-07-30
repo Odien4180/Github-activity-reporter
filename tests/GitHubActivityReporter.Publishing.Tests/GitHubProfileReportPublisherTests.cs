@@ -54,7 +54,7 @@ public sealed class GitHubProfileReportPublisherTests
             Assert.Equal(PublishOutcome.Published, result.Outcome);
             await git.Received(1).RunAsync(
                 root,
-                Arg.Is<IReadOnlyList<string>>(a => a != null && a.SequenceEqual(new[] { "push", "origin", "HEAD:profile" })),
+                Arg.Is<IReadOnlyList<string>>(a => a != null && a.SequenceEqual(new[] { "push", "origin", "HEAD:profile", "--force" })),
                 Arg.Any<CancellationToken>());
         }
         finally

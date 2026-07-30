@@ -48,7 +48,7 @@ public static class WorkflowTemplate
                   ref: {{ branch }}
                   path: {{ profile_repository_path }}
                   token: ${{ '{{' }} secrets.{{ token_secret_name }} {{ '}}' }}
-                  fetch-depth: 0
+                  fetch-depth: 1
 
               - name: Setup .NET
                 uses: actions/setup-dotnet@v5
@@ -103,8 +103,8 @@ public static class WorkflowTemplate
                 if: steps.profile_changes.outputs.changed == 'true'
                 run: |
                   git -C {{ profile_repository_path }} add -A
-                  git -C {{ profile_repository_path }} commit -m "{{ commit_message }}"
-                  git -C {{ profile_repository_path }} push origin HEAD:{{ branch }}
+                  git -C {{ profile_repository_path }} commit --amend --no-edit --reset-author
+                  git -C {{ profile_repository_path }} push origin HEAD:{{ branch }} --force
         {{- if github_pages_enabled }}
 
               - name: Upload GitHub Pages artifact

@@ -15,11 +15,18 @@ public sealed record GitHubProfilePublisherOptions
 
     public bool Push { get; init; }
 
+    /// <summary>
+    /// When true, amends the existing HEAD commit instead of creating a new one and force-pushes,
+    /// so the profile repository retains only a single commit and never accumulates history.
+    /// </summary>
+    public bool AmendCommit { get; init; } = true;
+
     public string CommitMessage { get; init; } = "chore(profile): update GitHub activity report";
 
     public const string RepositoryPathOption = "profile.repository-path";
     public const string CommitOption = "profile.commit";
     public const string PushOption = "profile.push";
+    public const string AmendCommitOption = "profile.amend-commit";
 
     public static GitHubProfilePublisherOptions FromContext(PublisherContext context)
     {
@@ -31,7 +38,10 @@ public sealed record GitHubProfilePublisherOptions
                 ? path
                 : context.WorkingDirectory,
             Commit = ReadFlag(context, CommitOption),
-            Push = ReadFlag(context, PushOption)
+            Push = ReadFlag(context, PushOption),
+            AmendCommit = !context.Options.TryGetValue(AmendCommitOption, out var amend)
+                || !bool.TryParse(amend, out var parsedAmend)
+                || parsedAmend
         };
     }
 
@@ -168,8 +178,12 @@ public sealed class GitHubProfileReportPublisher : IReportPublisher
             return PublishResult.NoChanges(PublisherId, "Nothing staged, no commit was created.");
         }
 
+        var commitArgs = options.AmendCommit
+            ? new[] { "commit", "--amend", "--no-edit", "--reset-author" }
+            : new[] { "commit", "-m", options.CommitMessage };
+
         var commit = await _git
-            .RunAsync(repositoryPath, ["commit", "-m", options.CommitMessage], cancellationToken)
+            .RunAsync(repositoryPath, commitArgs, cancellationToken)
             .ConfigureAwait(false);
 
         if (!commit.Succeeded)
@@ -183,8 +197,12 @@ public sealed class GitHubProfileReportPublisher : IReportPublisher
         }
 
         var branch = context.Configuration.GitHub.ProfileRepository.Branch;
+        var pushArgs = options.AmendCommit
+            ? new[] { "push", "origin", $"HEAD:{branch}", "--force" }
+            : new[] { "push", "origin", $"HEAD:{branch}" };
+
         var push = await _git
-            .RunAsync(repositoryPath, ["push", "origin", $"HEAD:{branch}"], cancellationToken)
+            .RunAsync(repositoryPath, pushArgs, cancellationToken)
             .ConfigureAwait(false);
 
         return push.Succeeded
