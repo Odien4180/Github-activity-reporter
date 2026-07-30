@@ -35,6 +35,11 @@ public sealed class CollectedActivityBuilder
             return null;
         }
 
+        if (request.IsRepositoryExcluded(input.RepositoryFullName))
+        {
+            return null;
+        }
+
         if (input.IsPrivateRepository)
         {
             return AddPrivate(input, request);

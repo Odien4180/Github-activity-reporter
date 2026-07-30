@@ -63,6 +63,35 @@ public sealed class GitHubActivityCollectorTests
         await source.DidNotReceive().GetPublicRepositoryAsync("example/old", Arg.Any<CancellationToken>());
     }
 
+    [Fact]
+    public async Task CollectAsync_excludes_configured_repositories()
+    {
+        var source = Substitute.For<IGitHubEventSource>();
+        source.GetUserEventsAsync("example", Start, Arg.Any<CancellationToken>()).Returns(
+        [
+            Raw("excluded", "example/example", isPrivate: false),
+            Raw("included", "example/public", isPrivate: false)
+        ]);
+        source.GetPublicRepositoryAsync("example/public", Arg.Any<CancellationToken>()).Returns(
+            new GitHubRepositoryInfo
+            {
+                FullName = "example/public",
+                HtmlUrl = "https://github.com/example/public"
+            });
+        var collector = new GitHubActivityCollector(source, new InMemoryPrivateTermRegistry());
+        var request = Request() with
+        {
+            ExcludedRepositoryFullNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "example/example" }
+        };
+
+        var result = await collector.CollectAsync(request, CancellationToken.None);
+
+        var item = Assert.Single(result.PublicEvents);
+        Assert.Equal("example/public", item.RepositoryName);
+        await source.Received(1).GetPublicRepositoryAsync("example/public", Arg.Any<CancellationToken>());
+        await source.DidNotReceive().GetPublicRepositoryAsync("example/example", Arg.Any<CancellationToken>());
+    }
+
     private static CollectionRequest Request() => new()
     {
         UserName = "example",
