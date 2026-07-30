@@ -96,7 +96,8 @@ public sealed class ReportRunner
             CollectPublic = configuration.Collection.Public.Enabled,
             CollectPrivate = configuration.Collection.Private.Enabled,
             PublicEventTypes = configuration.Collection.Public.EventTypes.ToActivityTypes(),
-            PrivateEventTypes = configuration.Collection.Private.EventTypes.ToActivityTypes()
+            PrivateEventTypes = configuration.Collection.Private.EventTypes.ToActivityTypes(),
+            ExcludedRepositoryFullNames = BuildExcludedRepositories(configuration)
         };
 
         var collected = await _collector.CollectAsync(request, cancellationToken).ConfigureAwait(false);
@@ -262,4 +263,16 @@ public sealed class ReportRunner
             [GitHubProfilePublisherOptions.CommitOption] = options.CommitProfileRepository.ToString(),
             [GitHubProfilePublisherOptions.PushOption] = options.PushProfileRepository.ToString()
         };
+
+    private static IReadOnlySet<string> BuildExcludedRepositories(ReporterConfiguration configuration)
+    {
+        var excluded = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var profileRepository = configuration.GitHub.ProfileRepository.FullName;
+        if (!string.IsNullOrWhiteSpace(profileRepository))
+        {
+            excluded.Add(profileRepository.Trim());
+        }
+
+        return excluded;
+    }
 }

@@ -15,7 +15,8 @@ public sealed class ActivityClassificationTests
         bool collectPublic = true,
         bool collectPrivate = true,
         IReadOnlySet<ActivityType>? publicTypes = null,
-        IReadOnlySet<ActivityType>? privateTypes = null) => new()
+        IReadOnlySet<ActivityType>? privateTypes = null,
+        IReadOnlySet<string>? excludedRepos = null) => new()
     {
         UserName = "example-user",
         PeriodStart = Start,
@@ -23,7 +24,8 @@ public sealed class ActivityClassificationTests
         CollectPublic = collectPublic,
         CollectPrivate = collectPrivate,
         PublicEventTypes = publicTypes ?? CollectionRequest.AllTypes,
-        PrivateEventTypes = privateTypes ?? CollectionRequest.AllTypes
+        PrivateEventTypes = privateTypes ?? CollectionRequest.AllTypes,
+        ExcludedRepositoryFullNames = excludedRepos ?? new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     };
 
     private static ActivityInput Input(
@@ -133,6 +135,21 @@ public sealed class ActivityClassificationTests
 
         Assert.Equal(0, builder.PublicEventCount);
         Assert.Equal(1, builder.PrivateEventCount);
+    }
+
+    [Fact]
+    public void Excluded_repositories_are_not_collected()
+    {
+        var builder = new CollectedActivityBuilder(new InMemoryPrivateTermRegistry());
+        var request = Request(excludedRepos: new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "example/tool", "company/secret" });
+
+        var publicResult = builder.Add(Input(isPrivate: false, repository: "example/tool"), request);
+        var privateResult = builder.Add(Input(isPrivate: true, repository: "company/secret"), request);
+
+        Assert.Null(publicResult);
+        Assert.Null(privateResult);
+        Assert.Equal(0, builder.PublicEventCount);
+        Assert.Equal(0, builder.PrivateEventCount);
     }
 
     [Fact]

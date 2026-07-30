@@ -19,9 +19,22 @@ public sealed record CollectionRequest
     /// <summary>Private activity types that should be counted.</summary>
     public IReadOnlySet<ActivityType> PrivateEventTypes { get; init; } = AllTypes;
 
+    /// <summary>Repository full names that must be excluded from collection.</summary>
+    public IReadOnlySet<string> ExcludedRepositoryFullNames { get; init; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
     public static IReadOnlySet<ActivityType> AllTypes { get; } =
         new HashSet<ActivityType>(Enum.GetValues<ActivityType>());
 
     public bool Contains(DateTimeOffset moment)
         => moment >= PeriodStart && moment <= PeriodEnd;
+
+    public bool IsRepositoryExcluded(string repositoryFullName)
+    {
+        if (string.IsNullOrWhiteSpace(repositoryFullName))
+        {
+            return false;
+        }
+
+        return ExcludedRepositoryFullNames.Contains(repositoryFullName);
+    }
 }

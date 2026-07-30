@@ -73,6 +73,11 @@ public sealed class GitHubActivityCollector : IActivityCollector
         {
             cancellationToken.ThrowIfCancellationRequested();
 
+            if (request.IsRepositoryExcluded(rawEvent.RepositoryFullName))
+            {
+                continue;
+            }
+
             GitHubRepositoryInfo? metadata = null;
             if (!rawEvent.IsPrivateRepository && request.CollectPublic && request.Contains(rawEvent.OccurredAt))
             {
