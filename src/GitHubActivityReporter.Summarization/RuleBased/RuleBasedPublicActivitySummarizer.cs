@@ -66,33 +66,40 @@ public sealed class RuleBasedPublicActivitySummarizer : IPublicActivitySummarize
             Topics = all.SelectMany(e => e.Topics).Distinct(StringComparer.OrdinalIgnoreCase).ToArray(),
             Events = displayed,
             Metrics = metrics,
-            Summary = BuildSummary(notable, metrics)
+            Summary = BuildSummary(notable, metrics, all.Select(e => e.Description).FirstOrDefault(d => !string.IsNullOrWhiteSpace(d)))
         };
     }
 
-    private string BuildSummary(IReadOnlyList<PublicActivityEvent> notable, PublicActivityMetrics metrics)
+    private string BuildSummary(
+        IReadOnlyList<PublicActivityEvent> notable,
+        PublicActivityMetrics metrics,
+        string? repositoryDescription)
     {
         var korean = string.Equals(_settings.Language, "ko", StringComparison.OrdinalIgnoreCase);
 
         if (notable.Count > 0)
         {
-            var headline = notable[0].Title!.Trim();
-            var others = metrics.TotalCount - 1;
-
-            if (others <= 0)
-            {
-                return korean
-                    ? $"\"{headline}\" 작업을 진행했습니다."
-                    : $"Worked on \"{headline}\".";
-            }
+            var titles = notable
+                .Select(item => item.Title!.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Take(Math.Max(1, _settings.MaxItemsPerRepository))
+                .ToArray();
+            var describedWork = string.Join(korean ? ", " : "; ", titles.Select(title => $"\"{title}\""));
 
             return korean
-                ? $"\"{headline}\" 외 {others.ToString(CultureInfo.InvariantCulture)}건의 작업을 진행했습니다."
-                : $"Worked on \"{headline}\" and {others.ToString(CultureInfo.InvariantCulture)} other item(s).";
+                ? $"{describedWork} 관련 변경을 진행했습니다."
+                : $"Worked on changes related to {describedWork}.";
         }
 
         if (metrics.CommitCount > 0)
         {
+            if (!string.IsNullOrWhiteSpace(repositoryDescription))
+            {
+                return korean
+                    ? $"{repositoryDescription.Trim()}을 위한 개발 변경을 이어갔습니다. (커밋 {metrics.CommitCount.ToString(CultureInfo.InvariantCulture)}건)"
+                    : $"Continued development of {repositoryDescription.Trim()}. ({metrics.CommitCount.ToString(CultureInfo.InvariantCulture)} commits)";
+            }
+
             return korean
                 ? $"커밋 {metrics.CommitCount.ToString(CultureInfo.InvariantCulture)}건을 반영했습니다."
                 : $"Pushed {metrics.CommitCount.ToString(CultureInfo.InvariantCulture)} commit(s).";

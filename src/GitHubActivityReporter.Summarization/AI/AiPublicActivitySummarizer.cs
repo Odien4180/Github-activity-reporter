@@ -94,6 +94,11 @@ public sealed class AiPublicActivitySummarizer : IPublicActivitySummarizer
             {
                 id = $"r{index + 1}",
                 name = _privacy.ExposeRepositoryNames ? activity.RepositoryName : null,
+                description = _privacy.ExposeRepositoryDescriptions ? Truncate(activity.Description, 500) : null,
+                language = _privacy.ExposeLanguages ? Truncate(activity.Language, 100) : null,
+                topics = _privacy.ExposeTopics
+                    ? activity.Topics.Take(10).Select(topic => Truncate(topic, 100)).Where(topic => topic is not null)
+                    : null,
                 metrics = activity.Metrics
             }),
             events = selected
@@ -124,6 +129,10 @@ public sealed class AiPublicActivitySummarizer : IPublicActivitySummarizer
         => $"""
            Summarize only the public GitHub activity facts in the supplied JSON.
            Produce a useful period-level narrative and exactly one concise summary per repository id.
+           Describe what changed or what the work was about. Use repository descriptions, languages, topics,
+           and event titles as context, and connect related facts into a concrete account of the work.
+           Treat counts as supporting detail, not as the main summary. When any qualitative evidence is
+           available, do not write a summary that merely lists counts or says that N activities occurred.
            The headline should state the dominant development focus. Highlights should group related work
            into 3 to 5 outcome-oriented bullets when enough evidence exists; use fewer when activity is sparse.
            Use commit subjects as evidence for themes, but paraphrase them and never quote or reproduce a
@@ -133,7 +142,7 @@ public sealed class AiPublicActivitySummarizer : IPublicActivitySummarizer
            Do not mention information that is absent from the input.
            Write in {(_summary.Language == "ko" ? "Korean" : "English")} using a {_summary.Style} style.
            Keep the headline under 200 characters and every highlight and repository summary under 300 characters.
-           Keep every string on one line. Avoid generic praise and repeated metric-only sentences.
+           Keep every string on one line. Avoid generic praise, activity-log phrasing, and repeated metric-only sentences.
            """;
 
     private bool CanExposeTitle(PublicActivityEvent activity)

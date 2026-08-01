@@ -60,6 +60,33 @@ public sealed class AiSummarizerTests
     }
 
     [Fact]
+    public async Task Ai_prompt_includes_allowed_public_repository_context_and_requests_descriptive_prose()
+    {
+        var client = Substitute.For<IAiTextClient>();
+        client.GenerateAsync(Arg.Any<AiTextRequest>(), Arg.Any<CancellationToken>())
+            .Returns(ValidResponse("Improved the report generation workflow."));
+        var privacy = new PublicPrivacySettings
+        {
+            ExposeRepositoryDescriptions = true,
+            ExposeLanguages = true,
+            ExposeTopics = true
+        };
+
+        await new AiPublicActivitySummarizer(client, new SummarySettings { Language = "en" }, privacy)
+            .SummarizeAsync(PublicEvents(), CancellationToken.None);
+
+        await client.Received(1).GenerateAsync(
+            Arg.Is<AiTextRequest>(request =>
+                request != null
+                && request.Input.Contains("Generates readable GitHub activity reports", StringComparison.Ordinal)
+                && request.Input.Contains("C#", StringComparison.Ordinal)
+                && request.Input.Contains("reporting", StringComparison.Ordinal)
+                && request.Instructions.Contains("Treat counts as supporting detail", StringComparison.Ordinal)
+                && request.Instructions.Contains("what the work was about", StringComparison.Ordinal)),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task Public_commit_messages_are_ai_only_evidence_when_explicitly_enabled()
     {
         var client = Substitute.For<IAiTextClient>();
@@ -123,6 +150,20 @@ public sealed class AiSummarizerTests
     }
 
     [Fact]
+    public async Task Rule_based_summary_uses_public_repository_description_for_commit_only_activity()
+    {
+        var events = PublicEvents().Where(item => item.Type == ActivityType.Commit).ToArray();
+
+        var result = await new RuleBasedPublicActivitySummarizer(new SummarySettings { Language = "ko" })
+            .SummarizeAsync(events, CancellationToken.None);
+
+        var repository = Assert.Single(result.Repositories);
+        Assert.Contains("Generates readable GitHub activity reports", repository.Summary, StringComparison.Ordinal);
+        Assert.Contains("개발 변경", repository.Summary, StringComparison.Ordinal);
+        Assert.NotEqual("커밋 1건을 반영했습니다.", repository.Summary);
+    }
+
+    [Fact]
     public async Task OpenAi_client_uses_responses_api_limits_and_extracts_output_text()
     {
         var handler = new RecordingHandler(_ => JsonResponse(
@@ -169,6 +210,9 @@ public sealed class AiSummarizerTests
             Type = ActivityType.PullRequestMerged,
             RepositoryName = "example/public",
             RepositoryUrl = "https://github.com/example/public",
+            Description = "Generates readable GitHub activity reports",
+            Language = "C#",
+            Topics = ["reporting", "github"],
             Title = "PUBLIC_TITLE_SENTINEL",
             OccurredAt = DateTimeOffset.Parse("2026-07-27T00:00:00Z")
         },
@@ -177,6 +221,9 @@ public sealed class AiSummarizerTests
             Type = ActivityType.Commit,
             RepositoryName = "example/public",
             RepositoryUrl = "https://github.com/example/public",
+            Description = "Generates readable GitHub activity reports",
+            Language = "C#",
+            Topics = ["reporting", "github"],
             Title = "Implement reliable retry flow",
             OccurredAt = DateTimeOffset.Parse("2026-07-26T00:00:00Z")
         }
