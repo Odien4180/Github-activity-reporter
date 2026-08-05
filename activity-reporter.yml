@@ -43,7 +43,7 @@ privacy:
     expose_languages: true
     expose_topics: false
     expose_commit_messages: false
-    ai_summary: false
+    ai_summary: true
   private:
     mode: aggregate-only
     expose_active_repository_count: true
