@@ -87,8 +87,8 @@ public sealed class RuleBasedPublicActivitySummarizer : IPublicActivitySummarize
             var describedWork = string.Join(korean ? ", " : "; ", titles.Select(title => $"\"{title}\""));
 
             return korean
-                ? $"{describedWork} 관련 변경을 진행했습니다."
-                : $"Worked on changes related to {describedWork}.";
+                ? $"{describedWork} 중심으로 공개 작업 흐름을 다듬었습니다."
+                : $"Refined the public delivery flow around {describedWork}.";
         }
 
         if (metrics.CommitCount > 0)
@@ -96,18 +96,18 @@ public sealed class RuleBasedPublicActivitySummarizer : IPublicActivitySummarize
             if (!string.IsNullOrWhiteSpace(repositoryDescription))
             {
                 return korean
-                    ? $"{repositoryDescription.Trim()}을 위한 개발 변경을 이어갔습니다. (커밋 {metrics.CommitCount.ToString(CultureInfo.InvariantCulture)}건)"
-                    : $"Continued development of {repositoryDescription.Trim()}. ({metrics.CommitCount.ToString(CultureInfo.InvariantCulture)} commits)";
+                    ? $"{repositoryDescription.Trim()} 방향으로 구현과 정비를 이어갔습니다. (커밋 {metrics.CommitCount.ToString(CultureInfo.InvariantCulture)}건)"
+                    : $"Kept implementation moving in line with {repositoryDescription.Trim()}. ({metrics.CommitCount.ToString(CultureInfo.InvariantCulture)} commits)";
             }
 
             return korean
-                ? $"커밋 {metrics.CommitCount.ToString(CultureInfo.InvariantCulture)}건을 반영했습니다."
-                : $"Pushed {metrics.CommitCount.ToString(CultureInfo.InvariantCulture)} commit(s).";
+                ? $"커밋 {metrics.CommitCount.ToString(CultureInfo.InvariantCulture)}건으로 공개 변경 사항을 정리했습니다."
+                : $"Wrapped up the public-facing changes in {metrics.CommitCount.ToString(CultureInfo.InvariantCulture)} commit(s).";
         }
 
         return korean
-            ? $"총 {metrics.TotalCount.ToString(CultureInfo.InvariantCulture)}건의 활동이 있었습니다."
-            : $"{metrics.TotalCount.ToString(CultureInfo.InvariantCulture)} activity item(s) recorded.";
+            ? $"총 {metrics.TotalCount.ToString(CultureInfo.InvariantCulture)}건의 공개 활동을 정리했습니다."
+            : $"Captured {metrics.TotalCount.ToString(CultureInfo.InvariantCulture)} public activity item(s).";
     }
 
     private PublicActivityNarrative BuildNarrative(IReadOnlyList<PublicRepositoryActivity> activities)
@@ -152,8 +152,8 @@ public sealed class RuleBasedPublicActivitySummarizer : IPublicActivitySummarize
         if (releases > 0) themes.Add("릴리스");
 
         return themes.Count > 0
-            ? $"{repositoryCount}개 공개 저장소에서 {string.Join(", ", themes)}를 중심으로 개발 활동을 진행했습니다."
-            : $"{repositoryCount}개 공개 저장소에 {commits}개의 커밋을 반영하며 개발을 이어갔습니다.";
+            ? $"{repositoryCount}개 공개 저장소에서 {string.Join(", ", themes)}를 중심으로 작업 흐름을 정리했습니다."
+            : $"{repositoryCount}개 공개 저장소에 {commits}개의 커밋을 반영하며 공개 작업을 이어갔습니다.";
     }
 
     private static string BuildEnglishHeadline(
@@ -172,7 +172,7 @@ public sealed class RuleBasedPublicActivitySummarizer : IPublicActivitySummarize
 
         return themes.Count > 0
             ? $"Worked across {repositoryCount} public repositories with a focus on {string.Join(", ", themes)}."
-            : $"Continued development across {repositoryCount} public repositories with {commits} commits.";
+            : $"Kept public work moving across {repositoryCount} repositories with {commits} commits.";
     }
 
     private static string BuildRepositoryHighlight(PublicRepositoryActivity activity, bool korean)
@@ -190,7 +190,7 @@ public sealed class RuleBasedPublicActivitySummarizer : IPublicActivitySummarize
             ? string.Empty
             : korean ? $" ({activity.Language})" : $" ({activity.Language})";
         return korean
-            ? $"{activity.RepositoryName}{language}: {string.Join(", ", parts)}을 진행했습니다."
+            ? $"{activity.RepositoryName}{language}: {string.Join(", ", parts)}을 중심으로 흐름을 정리했습니다."
             : $"{activity.RepositoryName}{language}: {string.Join(", ", parts)}.";
     }
 }

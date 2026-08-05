@@ -159,7 +159,7 @@ public sealed class AiSummarizerTests
 
         var repository = Assert.Single(result.Repositories);
         Assert.Contains("Generates readable GitHub activity reports", repository.Summary, StringComparison.Ordinal);
-        Assert.Contains("개발 변경", repository.Summary, StringComparison.Ordinal);
+        Assert.Contains("구현과 정비", repository.Summary, StringComparison.Ordinal);
         Assert.NotEqual("커밋 1건을 반영했습니다.", repository.Summary);
     }
 
