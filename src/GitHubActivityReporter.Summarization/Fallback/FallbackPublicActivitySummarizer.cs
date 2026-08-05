@@ -89,7 +89,7 @@ public sealed class FallbackPublicActivitySummarizer : IPublicActivitySummarizer
     /// Returns a safe version of an exception message with tokens/secrets redacted.
     /// Strips anything resembling a bearer token, API key, or long hex/base64 sequence.
     /// </summary>
-    internal static string SanitizeMessage(string? message)
+    public static string SanitizeMessage(string? message)
     {
         if (string.IsNullOrWhiteSpace(message))
         {

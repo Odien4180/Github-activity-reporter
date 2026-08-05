@@ -382,7 +382,7 @@ public sealed class AiSummarizerTests
     {
         var primary = Substitute.For<GitHubActivityReporter.Core.Abstractions.IPublicActivitySummarizer>();
         primary.SummarizeAsync(Arg.Any<IReadOnlyList<PublicActivityEvent>>(), Arg.Any<CancellationToken>())
-            .Returns<GitHubActivityReporter.Core.Models.PublicActivitySummary>(async callInfo =>
+            .Returns(async callInfo =>
             {
                 await Task.Delay(TimeSpan.FromSeconds(10), callInfo.ArgAt<CancellationToken>(1));
                 return new GitHubActivityReporter.Core.Models.PublicActivitySummary
