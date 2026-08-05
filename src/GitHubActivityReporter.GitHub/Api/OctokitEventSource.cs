@@ -224,6 +224,11 @@ internal sealed class OctokitEventSource : IGitHubEventSource
             cancellationToken.ThrowIfCancellationRequested();
 
             int? count = comparison.TotalCommits > 0 ? comparison.TotalCommits : null;
+            var subjects = comparison.Commits?
+                .Select(commit => FirstLine(commit.Commit?.Message))
+                .Where(subject => !string.IsNullOrWhiteSpace(subject))
+                .Cast<string>()
+                .ToArray() ?? Array.Empty<string>();
             var files = comparison.Files?
                 .Where(f => !string.IsNullOrWhiteSpace(f.Filename))
                 .Select(f => f.Filename)
@@ -234,6 +239,7 @@ internal sealed class OctokitEventSource : IGitHubEventSource
             var result = new PushCompareResult
             {
                 CommitCount = count,
+                CommitSubjects = subjects,
                 ChangedPaths = files,
                 Additions = additions,
                 Deletions = deletions,
@@ -253,6 +259,17 @@ internal sealed class OctokitEventSource : IGitHubEventSource
             _pushCompareCache[cacheKey] = null;
             return null;
         }
+    }
+
+    private static string? FirstLine(string? message)
+    {
+        if (string.IsNullOrWhiteSpace(message))
+        {
+            return null;
+        }
+
+        var index = message.IndexOfAny(['\r', '\n']);
+        return (index < 0 ? message : message[..index]).Trim();
     }
 
     public async Task<GitHubRepositoryInfo?> GetPublicRepositoryAsync(

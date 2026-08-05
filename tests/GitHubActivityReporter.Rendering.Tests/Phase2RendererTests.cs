@@ -110,7 +110,7 @@ public sealed class Phase2RendererTests
     }
 
     [Fact]
-    public void Markdown_renderer_embeds_dashboard_and_metric_overview()
+    public void Markdown_renderer_leads_with_work_summary_and_keeps_metrics_secondary()
     {
         var report = CreateReport();
         var context = CreateContext();
@@ -119,10 +119,14 @@ public sealed class Phase2RendererTests
 
         Assert.Contains("## Development Pulse", markdown, StringComparison.Ordinal);
         Assert.Contains("<img src=\"./generated/activity-dashboard.svg\"", markdown, StringComparison.Ordinal);
-        Assert.Contains("| Public repositories | Public commits | Private repositories | Private commits |", markdown, StringComparison.Ordinal);
         Assert.Contains("#### [example/public-tool](https://github.com/example/public-tool)", markdown, StringComparison.Ordinal);
         Assert.Contains("#### Activity Summary", markdown, StringComparison.Ordinal);
         Assert.Contains("Improved delivery reliability", markdown, StringComparison.Ordinal);
+        Assert.Contains("**Supporting metrics:**", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("| Public repositories | Public commits |", markdown, StringComparison.Ordinal);
+        Assert.True(
+            markdown.IndexOf("Improved configuration and stability.", StringComparison.Ordinal)
+            < markdown.IndexOf("**Supporting metrics:**", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -169,7 +173,7 @@ public sealed class Phase2RendererTests
             generated/site/assets/style.css 59b2b9dcff2420d8b3bbd09015fdd7b444addf35b68b92b60b994fb09ae3d122
             generated/site/data/history.json 61a7eaf22dadd677672a9ad136c6e9562e662ac8cb0fe441c32f807bda752ba7
             generated/site/data/latest.json a0d89746a1e511582daf19ab15fd7f65d589dece364393c47b5622d1f1a44d4e
-            generated/site/index.html 5fd2b1b8f0b2125e10de8cec5c01f60485adca3635d48f2eae7872e12542d022
+            generated/site/index.html 79ec4e800c23eefcd85e2d18f01ee48fdaaa126bbbc36ecd8719b82016d4f85f
             """;
 
         Assert.Equal(approved, SnapshotManifest(rendered));

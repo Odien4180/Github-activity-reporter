@@ -61,7 +61,7 @@ public sealed class EmailReportRenderer : IReportRenderer
             }
             html.AppendLine("</ul>");
         }
-        html.AppendLine($"<p>{report.PublicTotals.CommitCount} commits · {report.PublicTotals.PullRequestMergedCount} merged pull requests · {report.PublicTotals.IssueClosedCount} closed issues</p>");
+        html.AppendLine($"<p><small>Supporting metrics: {report.PublicTotals.CommitCount} commits · {report.PublicTotals.PullRequestMergedCount} merged pull requests · {report.PublicTotals.IssueClosedCount} closed issues</small></p>");
         foreach (var repository in report.PublicActivities)
         {
             html.AppendLine($"<h3>{WebUtility.HtmlEncode(repository.RepositoryName)}</h3>");
@@ -92,7 +92,7 @@ public sealed class EmailReportRenderer : IReportRenderer
                 text.AppendLine($"- {highlight}");
             }
         }
-        text.AppendLine($"{report.PublicTotals.CommitCount} commits, {report.PublicTotals.PullRequestMergedCount} merged pull requests, {report.PublicTotals.IssueClosedCount} closed issues");
+        text.AppendLine($"Supporting metrics: {report.PublicTotals.CommitCount} commits, {report.PublicTotals.PullRequestMergedCount} merged pull requests, {report.PublicTotals.IssueClosedCount} closed issues");
         foreach (var repository in report.PublicActivities)
         {
             text.AppendLine($"- {repository.RepositoryName}: {repository.Summary}");

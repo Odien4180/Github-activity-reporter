@@ -150,17 +150,24 @@ public sealed class AiSummarizerTests
     }
 
     [Fact]
-    public async Task Rule_based_summary_uses_commit_count_fallback_for_commit_only_activity()
+    public async Task Rule_based_summary_describes_changed_work_for_commit_only_activity()
     {
         var events = PublicEvents().Where(item => item.Type == ActivityType.Commit).ToArray();
 
-        var result = await new RuleBasedPublicActivitySummarizer(new SummarySettings { Language = "ko" })
+        var result = await new RuleBasedPublicActivitySummarizer(new SummarySettings
+            {
+                Language = "ko",
+                UsePublicChangeDetails = true
+            })
             .SummarizeAsync(events, CancellationToken.None);
 
         var repository = Assert.Single(result.Repositories);
-        Assert.Contains("커밋", repository.Summary, StringComparison.Ordinal);
+        Assert.Contains("안정성", repository.Summary, StringComparison.Ordinal);
+        Assert.DoesNotContain("커밋 1건", repository.Summary, StringComparison.Ordinal);
+        Assert.Contains(result.Narrative.Highlights, highlight =>
+            highlight.Contains("안정성", StringComparison.Ordinal));
+        Assert.DoesNotContain("커밋", result.Narrative.Headline, StringComparison.Ordinal);
         Assert.DoesNotContain("Generates readable GitHub activity reports", repository.Summary, StringComparison.Ordinal);
-        Assert.DoesNotContain("구현과 정비", repository.Summary, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -173,6 +180,23 @@ public sealed class AiSummarizerTests
 
         var repository = Assert.Single(result.Repositories);
         Assert.Contains("설정 흐름", repository.Summary, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Rule_based_narrative_uses_repository_work_summaries_instead_of_metric_lists()
+    {
+        var result = await new RuleBasedPublicActivitySummarizer(new SummarySettings
+            {
+                Language = "ko",
+                UsePublicChangeDetails = true
+            })
+            .SummarizeAsync(PublicEvents(), CancellationToken.None);
+
+        Assert.Contains(result.Narrative.Highlights, highlight =>
+            highlight.Contains("설정 흐름", StringComparison.Ordinal));
+        Assert.DoesNotContain(result.Narrative.Highlights, highlight =>
+            highlight.Contains("커밋 1건", StringComparison.Ordinal)
+            || highlight.Contains("PR 병합 1건", StringComparison.Ordinal));
     }
 
     [Fact]

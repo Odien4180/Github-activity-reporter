@@ -24,4 +24,15 @@ public sealed class OctokitActivityMapperTests
 
         Assert.Equal(expected, result);
     }
+
+    [Fact]
+    public void ResolveCommitSubject_uses_compare_details_when_event_payload_omits_them()
+    {
+        var subject = OctokitActivityMapper.ResolveCommitSubject(
+            Array.Empty<string?>(),
+            ["Describe the completed work"],
+            0);
+
+        Assert.Equal("Describe the completed work", subject);
+    }
 }

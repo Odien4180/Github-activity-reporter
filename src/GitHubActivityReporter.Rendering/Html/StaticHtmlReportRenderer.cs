@@ -138,7 +138,7 @@ public sealed class StaticHtmlReportRenderer : IReportRenderer
             }
             sb.AppendLine("      </ul>");
         }
-        sb.AppendLine($"      <ul><li>{publicTotals.CommitCount} commits</li><li>{publicTotals.PullRequestMergedCount} merged pull requests</li><li>{publicTotals.IssueClosedCount} closed issues</li></ul>");
+        sb.AppendLine($"      <p><strong>Supporting metrics</strong></p><ul><li>{publicTotals.CommitCount} commits</li><li>{publicTotals.PullRequestMergedCount} merged pull requests</li><li>{publicTotals.IssueClosedCount} closed issues</li></ul>");
         sb.AppendLine("""    </section>""");
         sb.AppendLine("""    <section class="card">""");
         sb.AppendLine("""      <h2>Public repositories</h2>""");
@@ -158,7 +158,7 @@ public sealed class StaticHtmlReportRenderer : IReportRenderer
                     sb.AppendLine($"        <p>{Escape(repo.Summary!)}</p>");
                 }
 
-                sb.AppendLine($"        <p>{repo.Metrics.CommitCount} commits · {repo.Metrics.PullRequestMergedCount} merged PRs · {repo.Metrics.IssueClosedCount} closed issues</p>");
+                sb.AppendLine($"        <p><small>Supporting metrics: {repo.Metrics.CommitCount} commits · {repo.Metrics.PullRequestMergedCount} merged PRs · {repo.Metrics.IssueClosedCount} closed issues</small></p>");
                 sb.AppendLine("""      </article>""");
             }
         }

@@ -70,7 +70,7 @@ public sealed class SlackBlockKitRenderer : IReportRenderer
             lines.Add(Escape(report.PublicNarrative.Headline));
             lines.AddRange(report.PublicNarrative.Highlights.Select(highlight => $"• {Escape(highlight)}"));
         }
-        lines.Add($"{report.PublicTotals.CommitCount} commits · {report.PublicTotals.PullRequestMergedCount} merged PRs · {report.PublicTotals.IssueClosedCount} closed issues");
+        lines.Add($"_Supporting metrics:_ {report.PublicTotals.CommitCount} commits · {report.PublicTotals.PullRequestMergedCount} merged PRs · {report.PublicTotals.IssueClosedCount} closed issues");
         return string.Join("\n", lines);
     }
 

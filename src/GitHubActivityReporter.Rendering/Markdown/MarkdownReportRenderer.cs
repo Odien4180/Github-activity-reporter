@@ -60,7 +60,6 @@ public sealed class MarkdownReportRenderer : IReportRenderer
         builder.AppendLine();
 
         AppendDashboard(builder, context, korean);
-        AppendOverview(builder, report, korean, privacy.Private);
 
         if (context.Configuration.Collection.Public.Enabled)
         {
@@ -94,32 +93,6 @@ public sealed class MarkdownReportRenderer : IReportRenderer
         builder.AppendLine("</p>");
         builder.AppendLine();
     }
-
-    private static void AppendOverview(
-        StringBuilder builder,
-        ActivityReport report,
-        bool korean,
-        PrivatePrivacySettings privacy)
-    {
-        var publicTotals = report.PublicTotals;
-        builder.AppendLine(korean
-            ? "| 공개 저장소 | 공개 커밋 | 비공개 저장소 | 비공개 커밋 |"
-            : "| Public repositories | Public commits | Private repositories | Private commits |");
-        builder.AppendLine("| :---: | :---: | :---: | :---: |");
-        builder.Append("| **").Append(report.PublicActivities.Count.ToString(CultureInfo.InvariantCulture))
-            .Append("** | **").Append(publicTotals.CommitCount.ToString(CultureInfo.InvariantCulture))
-            .Append("** | ").Append(FormatPrivateOverviewValue(
-                privacy.ExposeActiveRepositoryCount,
-                report.PrivateMetrics.ActiveRepositoryCount))
-            .Append(" | ").Append(FormatPrivateOverviewValue(
-                privacy.ExposeCommitCount,
-                report.PrivateMetrics.CommitCount))
-            .AppendLine(" |");
-        builder.AppendLine();
-    }
-
-    private static string FormatPrivateOverviewValue(bool enabled, int value)
-        => enabled ? $"**{value.ToString(CultureInfo.InvariantCulture)}**" : "—";
 
     private static string RenderPeriodLine(ActivityReport report, RendererContext context, bool korean)
     {
@@ -189,7 +162,7 @@ public sealed class MarkdownReportRenderer : IReportRenderer
             var metrics = DescribeMetrics(activity.Metrics, korean).ToArray();
             if (metrics.Length > 0)
             {
-                builder.Append("**").Append(korean ? "활동" : "Activity").Append(":** ")
+                builder.Append("**").Append(korean ? "참고 집계" : "Supporting metrics").Append(":** ")
                     .AppendLine(string.Join(" · ", metrics));
                 builder.AppendLine();
             }

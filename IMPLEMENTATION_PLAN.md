@@ -42,5 +42,7 @@
 - [x] Complete Phases 1-4
 - [x] Complete the opt-in GitHub Models live smoke test with a user-provided token
 - [x] Improve AI summaries from live feedback with a period headline, outcome highlights and repository-level details
+- [x] Make work descriptions the primary report content and move activity counts to supporting metrics
+- [x] Recover public commit subjects from compare results when event payloads omit commit details
 - [ ] Perform opt-in live smoke tests for GitHub Pages, SMTP, Slack and the OpenAI provider with user-owned credentials
 - [ ] Continue production hardening if the remaining live integrations reveal operational issues
