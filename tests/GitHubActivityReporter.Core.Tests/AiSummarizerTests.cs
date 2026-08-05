@@ -238,7 +238,18 @@ public sealed class AiSummarizerTests
         Assert.NotNull(client2);
     }
 
-    // ── Retry behaviour ──────────────────────────────────────────────────────
+    [Theory]
+    [InlineData("```json\n{\"a\":1}\n```", "{\"a\":1}")]
+    [InlineData("```\n{\"a\":1}\n```", "{\"a\":1}")]
+    [InlineData("{\"a\":1}", "{\"a\":1}")]
+    [InlineData("  ```json\n{\"a\":1}\n```  ", "{\"a\":1}")]
+    [InlineData("```json\n{\"a\":1}```", "{\"a\":1}")]
+    public void StripMarkdownCodeFences_removes_fences_and_preserves_json(string input, string expected)
+    {
+        var result = GitHubCopilotClient.StripMarkdownCodeFences(input);
+        Assert.Equal(expected, result);
+    }
+
 
     [Theory]
     [InlineData(408)]

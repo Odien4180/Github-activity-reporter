@@ -96,9 +96,47 @@ public sealed class GitHubCopilotClient : IAiTextClient
             throw new InvalidOperationException("GitHub Copilot returned an empty response.");
         }
 
-        return content;
+        return StripMarkdownCodeFences(content);
     }
 
     private string BuildPrompt(AiTextRequest request)
         => PromptPreamble + request.Instructions + PromptConstraints + "\n\n[Input]\n\n" + request.Input;
+
+    /// <summary>
+    /// Removes Markdown code fences that Copilot may wrap around JSON responses,
+    /// e.g. ```json\n{...}\n``` or ```\n{...}\n```.
+    /// Returns the original string if no fences are detected.
+    /// </summary>
+    internal static string StripMarkdownCodeFences(string content)
+    {
+        var trimmed = content.Trim();
+
+        // Match opening fence: ``` optionally followed by a language tag and newline
+        if (!trimmed.StartsWith("```", StringComparison.Ordinal))
+        {
+            return content;
+        }
+
+        var firstNewLine = trimmed.IndexOf('\n');
+        if (firstNewLine < 0)
+        {
+            return content;
+        }
+
+        // Strip the opening fence line
+        var inner = trimmed[(firstNewLine + 1)..];
+
+        // Strip the closing fence if present
+        var closingFence = inner.LastIndexOf("\n```", StringComparison.Ordinal);
+        if (closingFence >= 0)
+        {
+            inner = inner[..closingFence];
+        }
+        else if (inner.EndsWith("```", StringComparison.Ordinal))
+        {
+            inner = inner[..^3];
+        }
+
+        return inner.Trim();
+    }
 }
