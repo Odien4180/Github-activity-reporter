@@ -191,6 +191,31 @@ public sealed class AiSummarizerTests
     }
 
     [Fact]
+    public async Task Ai_summarizer_accepts_fully_nested_result_envelope()
+    {
+        // Some Copilot models return headline, highlights, and summaries all under a "result" key.
+        var client = Substitute.For<IAiTextClient>();
+        client.GenerateAsync(Arg.Any<AiTextRequest>(), Arg.Any<CancellationToken>())
+            .Returns(JsonSerializer.Serialize(new
+            {
+                result = new
+                {
+                    headline = "전체 중첩 응답입니다.",
+                    highlights = new[] { "중첩된 하이라이트입니다." },
+                    summaries = new[] { new { id = "r1", summary = "중첩 저장소 요약입니다." } }
+                }
+            }));
+        var summarizer = new AiPublicActivitySummarizer(client, new SummarySettings(), new PublicPrivacySettings());
+
+        var result = await summarizer.SummarizeAsync(PublicEvents(), CancellationToken.None);
+
+        var repo = Assert.Single(result.Repositories);
+        Assert.Equal("중첩 저장소 요약입니다.", repo.Summary);
+        Assert.Equal("전체 중첩 응답입니다.", result.Narrative.Headline);
+        Assert.NotEmpty(result.Narrative.Highlights);
+    }
+
+    [Fact]
     public async Task Rule_based_summary_describes_changed_work_for_commit_only_activity()
     {
         var events = PublicEvents().Where(item => item.Type == ActivityType.Commit).ToArray();
