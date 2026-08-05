@@ -53,7 +53,7 @@ public sealed class DoctorCommand : AsyncCommand<ReporterSettings>
             ? new CheckResult(CheckStatus.Ok, "GitHub CLI is installed")
             : new CheckResult(CheckStatus.Warning, "GitHub CLI (gh) is not installed. A token environment variable is then required."));
 
-        var secretName = loaded?.Configuration.GitHub.TokenSecretName ?? "ACTIVITY_REPORTER_GITHUB_TOKEN";
+        var secretName = loaded?.Configuration.GitHub.TokenSecretName ?? "GIT_ACCESS_TOKEN";
         var authentication = await cli.CheckAsync(secretName, cancellationToken).ConfigureAwait(false);
         checks.Add(authentication.IsAuthenticated
             ? new CheckResult(CheckStatus.Ok, $"GitHub authenticated ({authentication.Source})")

@@ -66,7 +66,7 @@ public sealed class GitHubSettings
     public ProfileRepositorySettings ProfileRepository { get; set; } = new();
 
     /// <summary>Name of the GitHub Actions secret holding the token. Never the value.</summary>
-    public string TokenSecretName { get; set; } = "ACTIVITY_REPORTER_GITHUB_TOKEN";
+    public string TokenSecretName { get; set; } = "GIT_ACCESS_TOKEN";
 }
 
 public sealed class ProfileRepositorySettings

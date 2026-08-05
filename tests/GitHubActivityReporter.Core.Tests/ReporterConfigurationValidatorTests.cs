@@ -93,7 +93,7 @@ public sealed class ReporterConfigurationValidatorTests
         config.Privacy.Public.AiSummary = true;
         config.Summary.Ai.Provider = "github-copilot";
         config.Summary.Ai.Model = "auto";
-        config.Summary.Ai.ApiKeySecretName = "ACTIVITY_REPORTER_GITHUB_TOKEN";
+        config.Summary.Ai.ApiKeySecretName = "GIT_ACCESS_TOKEN";
 
         var result = new ReporterConfigurationValidator().Validate(config);
 
@@ -123,7 +123,7 @@ public sealed class ReporterConfigurationValidatorTests
         config.Privacy.Public.AiSummary = true;
         config.Summary.Ai.Provider = "github-copilot";
         config.Summary.Ai.Model = string.Empty;
-        config.Summary.Ai.ApiKeySecretName = "ACTIVITY_REPORTER_GITHUB_TOKEN";
+        config.Summary.Ai.ApiKeySecretName = "GIT_ACCESS_TOKEN";
 
         var result = new ReporterConfigurationValidator().Validate(config);
 
