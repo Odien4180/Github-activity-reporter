@@ -169,9 +169,21 @@ public sealed class AiPublicActivitySummarizer : IPublicActivitySummarizer
     {
         using var json = JsonDocument.Parse(response);
         var root = json.RootElement;
-        var headline = ReadSingleLine(root, "headline", 200)
+
+        // Some models wrap the entire response under a "result" envelope.
+        // Try root first, then fall back to root["result"] for headline and highlights.
+        var narrativeRoot = root;
+        if (ReadSingleLine(root, "headline", 200) is null
+            && root.TryGetProperty("result", out var resultEnvelope)
+            && resultEnvelope.ValueKind == JsonValueKind.Object
+            && ReadSingleLine(resultEnvelope, "headline", 200) is not null)
+        {
+            narrativeRoot = resultEnvelope;
+        }
+
+        var headline = ReadSingleLine(narrativeRoot, "headline", 200)
                        ?? throw new JsonException("AI summary response is missing a valid headline.");
-        if (!root.TryGetProperty("highlights", out var highlightsElement)
+        if (!narrativeRoot.TryGetProperty("highlights", out var highlightsElement)
             || highlightsElement.ValueKind != JsonValueKind.Array)
         {
             throw new JsonException("AI summary response is missing the highlights array.");
