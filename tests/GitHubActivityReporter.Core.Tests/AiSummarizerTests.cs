@@ -150,6 +150,47 @@ public sealed class AiSummarizerTests
     }
 
     [Fact]
+    public async Task Ai_summarizer_accepts_repository_summaries_alias()
+    {
+        var client = Substitute.For<IAiTextClient>();
+        client.GenerateAsync(Arg.Any<AiTextRequest>(), Arg.Any<CancellationToken>())
+            .Returns(JsonSerializer.Serialize(new
+            {
+                headline = "개선 작업을 진행했습니다.",
+                highlights = new[] { "핵심 흐름을 정리했습니다." },
+                repository_summaries = new[] { new { id = "r1", summary = "저장소 요약입니다." } }
+            }));
+        var summarizer = new AiPublicActivitySummarizer(client, new SummarySettings(), new PublicPrivacySettings());
+
+        var result = await summarizer.SummarizeAsync(PublicEvents(), CancellationToken.None);
+
+        var repo = Assert.Single(result.Repositories);
+        Assert.Equal("저장소 요약입니다.", repo.Summary);
+    }
+
+    [Fact]
+    public async Task Ai_summarizer_accepts_nested_result_summaries()
+    {
+        var client = Substitute.For<IAiTextClient>();
+        client.GenerateAsync(Arg.Any<AiTextRequest>(), Arg.Any<CancellationToken>())
+            .Returns(JsonSerializer.Serialize(new
+            {
+                headline = "개선 작업을 진행했습니다.",
+                highlights = new[] { "핵심 흐름을 정리했습니다." },
+                result = new
+                {
+                    summaries = new[] { new { id = "r1", summary = "중첩 요약입니다." } }
+                }
+            }));
+        var summarizer = new AiPublicActivitySummarizer(client, new SummarySettings(), new PublicPrivacySettings());
+
+        var result = await summarizer.SummarizeAsync(PublicEvents(), CancellationToken.None);
+
+        var repo = Assert.Single(result.Repositories);
+        Assert.Equal("중첩 요약입니다.", repo.Summary);
+    }
+
+    [Fact]
     public async Task Rule_based_summary_describes_changed_work_for_commit_only_activity()
     {
         var events = PublicEvents().Where(item => item.Type == ActivityType.Commit).ToArray();

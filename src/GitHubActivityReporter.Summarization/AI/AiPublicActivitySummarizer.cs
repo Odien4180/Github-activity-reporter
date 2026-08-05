@@ -189,8 +189,7 @@ public sealed class AiPublicActivitySummarizer : IPublicActivitySummarizer
             throw new JsonException("AI summary response contains no usable highlights.");
         }
 
-        if (!root.TryGetProperty("summaries", out var summaries)
-            || summaries.ValueKind != JsonValueKind.Array)
+        if (!TryGetSummariesElement(root, out var summaries))
         {
             throw new JsonException("AI summary response is missing the summaries array.");
         }
@@ -258,6 +257,46 @@ public sealed class AiPublicActivitySummarizer : IPublicActivitySummarizer
            && int.TryParse(id.AsSpan(1), out var value)
            && value >= 1
            && value <= repositoryCount;
+
+    private static bool TryGetSummariesElement(JsonElement root, out JsonElement summaries)
+    {
+        if (root.TryGetProperty("summaries", out summaries)
+            && summaries.ValueKind == JsonValueKind.Array)
+        {
+            return true;
+        }
+
+        if (root.TryGetProperty("repository_summaries", out summaries)
+            && summaries.ValueKind == JsonValueKind.Array)
+        {
+            return true;
+        }
+
+        if (root.TryGetProperty("repositories", out summaries)
+            && summaries.ValueKind == JsonValueKind.Array)
+        {
+            return true;
+        }
+
+        if (root.TryGetProperty("result", out var result)
+            && result.ValueKind == JsonValueKind.Object)
+        {
+            if (result.TryGetProperty("summaries", out summaries)
+                && summaries.ValueKind == JsonValueKind.Array)
+            {
+                return true;
+            }
+
+            if (result.TryGetProperty("repository_summaries", out summaries)
+                && summaries.ValueKind == JsonValueKind.Array)
+            {
+                return true;
+            }
+        }
+
+        summaries = default;
+        return false;
+    }
 
     private static string? Truncate(string? value, int maxLength)
         => string.IsNullOrWhiteSpace(value)
