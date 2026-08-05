@@ -22,5 +22,13 @@ public sealed record PublicActivityEvent
 
     public IReadOnlyList<string> Topics { get; init; } = Array.Empty<string>();
 
+    public IReadOnlyList<string> ChangedPaths { get; init; } = Array.Empty<string>();
+
+    public int? Additions { get; init; }
+
+    public int? Deletions { get; init; }
+
+    public int? ChangedFiles { get; init; }
+
     public required DateTimeOffset OccurredAt { get; init; }
 }

@@ -85,4 +85,15 @@ public sealed class ReporterConfigurationValidatorTests
         Assert.Contains(invalid.Errors, e => e.PropertyName == "Summary.Ai.Provider");
         Assert.Contains(invalid.Errors, e => e.PropertyName == "Summary.Ai.MaxOutputTokens");
     }
+
+    [Fact]
+    public void Public_change_detail_level_must_be_supported()
+    {
+        var config = ReporterConfiguration.CreateDefault("example-user");
+        config.Summary.PublicChangeDetailLevel = "deep";
+
+        var invalid = new ReporterConfigurationValidator().Validate(config);
+
+        Assert.Contains(invalid.Errors, e => e.PropertyName == "Summary.PublicChangeDetailLevel");
+    }
 }

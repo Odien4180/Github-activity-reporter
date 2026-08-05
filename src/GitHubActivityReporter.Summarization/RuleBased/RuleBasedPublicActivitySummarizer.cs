@@ -76,6 +76,14 @@ public sealed class RuleBasedPublicActivitySummarizer : IPublicActivitySummarize
         string? repositoryDescription)
     {
         var korean = string.Equals(_settings.Language, "ko", StringComparison.OrdinalIgnoreCase);
+        if (_settings.UsePublicChangeDetails)
+        {
+            var detailSummary = BuildChangeDetailSummary(notable.Count > 0 ? notable : Array.Empty<PublicActivityEvent>(), korean);
+            if (!string.IsNullOrWhiteSpace(detailSummary))
+            {
+                return detailSummary!;
+            }
+        }
 
         if (notable.Count > 0)
         {
@@ -87,8 +95,8 @@ public sealed class RuleBasedPublicActivitySummarizer : IPublicActivitySummarize
             var describedWork = string.Join(korean ? ", " : "; ", titles.Select(title => $"\"{title}\""));
 
             return korean
-                ? $"{describedWork} 관련 변경을 진행했습니다."
-                : $"Worked on changes related to {describedWork}.";
+                ? $"{describedWork} 중심으로 공개 작업 흐름을 다듬었습니다."
+                : $"Refined the public delivery flow around {describedWork}.";
         }
 
         if (metrics.CommitCount > 0)
@@ -96,18 +104,95 @@ public sealed class RuleBasedPublicActivitySummarizer : IPublicActivitySummarize
             if (!string.IsNullOrWhiteSpace(repositoryDescription))
             {
                 return korean
-                    ? $"{repositoryDescription.Trim()}을 위한 개발 변경을 이어갔습니다. (커밋 {metrics.CommitCount.ToString(CultureInfo.InvariantCulture)}건)"
-                    : $"Continued development of {repositoryDescription.Trim()}. ({metrics.CommitCount.ToString(CultureInfo.InvariantCulture)} commits)";
+                    ? $"{repositoryDescription.Trim()} 방향으로 구현과 정비를 이어갔습니다. (커밋 {metrics.CommitCount.ToString(CultureInfo.InvariantCulture)}건)"
+                    : $"Kept implementation moving in line with {repositoryDescription.Trim()}. ({metrics.CommitCount.ToString(CultureInfo.InvariantCulture)} commits)";
             }
 
             return korean
-                ? $"커밋 {metrics.CommitCount.ToString(CultureInfo.InvariantCulture)}건을 반영했습니다."
-                : $"Pushed {metrics.CommitCount.ToString(CultureInfo.InvariantCulture)} commit(s).";
+                ? $"커밋 {metrics.CommitCount.ToString(CultureInfo.InvariantCulture)}건으로 공개 변경 사항을 정리했습니다."
+                : $"Wrapped up the public-facing changes in {metrics.CommitCount.ToString(CultureInfo.InvariantCulture)} commit(s).";
         }
 
         return korean
-            ? $"총 {metrics.TotalCount.ToString(CultureInfo.InvariantCulture)}건의 활동이 있었습니다."
-            : $"{metrics.TotalCount.ToString(CultureInfo.InvariantCulture)} activity item(s) recorded.";
+            ? $"총 {metrics.TotalCount.ToString(CultureInfo.InvariantCulture)}건의 공개 활동을 정리했습니다."
+            : $"Captured {metrics.TotalCount.ToString(CultureInfo.InvariantCulture)} public activity item(s).";
+    }
+
+    private string? BuildChangeDetailSummary(
+        IReadOnlyList<PublicActivityEvent> events,
+        bool korean)
+    {
+        var paths = events
+            .SelectMany(e => e.ChangedPaths)
+            .Where(path => !string.IsNullOrWhiteSpace(path))
+            .Take(20)
+            .ToArray();
+        var theme = ClassifyTheme(paths);
+        if (theme is null)
+        {
+            return null;
+        }
+
+        var additions = events.Sum(e => e.Additions ?? 0);
+        var deletions = events.Sum(e => e.Deletions ?? 0);
+        var files = events.Sum(e => e.ChangedFiles ?? 0);
+        var level = _settings.PublicChangeDetailLevel;
+
+        return (theme, korean, level) switch
+        {
+            ("configuration", true, "detailed") => $"설정 흐름을 정비하고 관련 변경 파일 {files}개를 조정했습니다. (+{additions}/-{deletions})",
+            ("configuration", true, _) => "설정 흐름과 연결 지점을 정비했습니다.",
+            ("reliability", true, "detailed") => $"오류 처리와 안정성 보강에 집중했습니다. 변경 파일 {files}개, +{additions}/-{deletions}입니다.",
+            ("reliability", true, _) => "오류 처리와 안정성 보강을 진행했습니다.",
+            ("documentation", true, "detailed") => $"문서와 사용 흐름 설명을 다듬었습니다. 관련 파일 {files}개를 조정했습니다.",
+            ("documentation", true, _) => "문서와 사용 흐름 설명을 다듬었습니다.",
+            ("automation", true, "detailed") => $"자동화와 워크플로 구성을 손봤습니다. 변경 파일 {files}개를 정리했습니다.",
+            ("automation", true, _) => "자동화와 워크플로 구성을 손봤습니다.",
+            ("configuration", false, "detailed") => $"Refined the configuration flow across {files} changed file(s). (+{additions}/-{deletions})",
+            ("configuration", false, _) => "Refined the configuration flow and its integration points.",
+            ("reliability", false, "detailed") => $"Focused on error handling and reliability updates across {files} changed file(s). (+{additions}/-{deletions})",
+            ("reliability", false, _) => "Strengthened error handling and reliability.",
+            ("documentation", false, "detailed") => $"Updated documentation and usage guidance across {files} changed file(s).",
+            ("documentation", false, _) => "Updated documentation and usage guidance.",
+            ("automation", false, "detailed") => $"Adjusted automation and workflow setup across {files} changed file(s).",
+            ("automation", false, _) => "Adjusted automation and workflow setup.",
+            _ => null
+        };
+    }
+
+    private static string? ClassifyTheme(IReadOnlyList<string> paths)
+    {
+        if (paths.Any(path => path.Contains("workflow", StringComparison.OrdinalIgnoreCase)
+                              || path.Contains(".github/", StringComparison.OrdinalIgnoreCase)
+                              || path.Contains("actions", StringComparison.OrdinalIgnoreCase)))
+        {
+            return "automation";
+        }
+
+        if (paths.Any(path => path.Contains("readme", StringComparison.OrdinalIgnoreCase)
+                              || path.EndsWith(".md", StringComparison.OrdinalIgnoreCase)
+                              || path.Contains("docs", StringComparison.OrdinalIgnoreCase)))
+        {
+            return "documentation";
+        }
+
+        if (paths.Any(path => path.Contains("config", StringComparison.OrdinalIgnoreCase)
+                              || path.EndsWith(".yml", StringComparison.OrdinalIgnoreCase)
+                              || path.EndsWith(".yaml", StringComparison.OrdinalIgnoreCase)
+                              || path.Contains("settings", StringComparison.OrdinalIgnoreCase)))
+        {
+            return "configuration";
+        }
+
+        if (paths.Any(path => path.Contains("test", StringComparison.OrdinalIgnoreCase)
+                              || path.Contains("retry", StringComparison.OrdinalIgnoreCase)
+                              || path.Contains("error", StringComparison.OrdinalIgnoreCase)
+                              || path.Contains("validation", StringComparison.OrdinalIgnoreCase)))
+        {
+            return "reliability";
+        }
+
+        return null;
     }
 
     private PublicActivityNarrative BuildNarrative(IReadOnlyList<PublicRepositoryActivity> activities)
@@ -152,8 +237,8 @@ public sealed class RuleBasedPublicActivitySummarizer : IPublicActivitySummarize
         if (releases > 0) themes.Add("릴리스");
 
         return themes.Count > 0
-            ? $"{repositoryCount}개 공개 저장소에서 {string.Join(", ", themes)}를 중심으로 개발 활동을 진행했습니다."
-            : $"{repositoryCount}개 공개 저장소에 {commits}개의 커밋을 반영하며 개발을 이어갔습니다.";
+            ? $"{repositoryCount}개 공개 저장소에서 {string.Join(", ", themes)}를 중심으로 작업 흐름을 정리했습니다."
+            : $"{repositoryCount}개 공개 저장소에 {commits}개의 커밋을 반영하며 공개 작업을 이어갔습니다.";
     }
 
     private static string BuildEnglishHeadline(
@@ -172,7 +257,7 @@ public sealed class RuleBasedPublicActivitySummarizer : IPublicActivitySummarize
 
         return themes.Count > 0
             ? $"Worked across {repositoryCount} public repositories with a focus on {string.Join(", ", themes)}."
-            : $"Continued development across {repositoryCount} public repositories with {commits} commits.";
+            : $"Kept public work moving across {repositoryCount} repositories with {commits} commits.";
     }
 
     private static string BuildRepositoryHighlight(PublicRepositoryActivity activity, bool korean)
@@ -190,7 +275,7 @@ public sealed class RuleBasedPublicActivitySummarizer : IPublicActivitySummarize
             ? string.Empty
             : korean ? $" ({activity.Language})" : $" ({activity.Language})";
         return korean
-            ? $"{activity.RepositoryName}{language}: {string.Join(", ", parts)}을 진행했습니다."
+            ? $"{activity.RepositoryName}{language}: {string.Join(", ", parts)}을 중심으로 흐름을 정리했습니다."
             : $"{activity.RepositoryName}{language}: {string.Join(", ", parts)}.";
     }
 }

@@ -57,7 +57,11 @@ public static class SampleActivity
             Title = PublicPullRequestTitle,
             Url = $"https://github.com/{PublicRepository}/pull/12",
             RepositoryDescription = "A public tool",
-            Language = "C#"
+            Language = "C#",
+            ChangedPaths = ["src/Config/Flow.cs", "src/Validation/ConnectionGuard.cs"],
+            Additions = 42,
+            Deletions = 10,
+            ChangedFiles = 2
         },
         new ActivityInput
         {
@@ -66,14 +70,22 @@ public static class SampleActivity
             IsPrivateRepository = false,
             OccurredAt = PeriodStart.AddDays(2),
             Title = PublicIssueTitle,
-            Url = $"https://github.com/{PublicRepository}/issues/34"
+            Url = $"https://github.com/{PublicRepository}/issues/34",
+            ChangedPaths = ["docs/README.md"],
+            Additions = 8,
+            Deletions = 1,
+            ChangedFiles = 1
         },
         new ActivityInput
         {
             Type = ActivityType.Commit,
             RepositoryFullName = PublicRepository,
             IsPrivateRepository = false,
-            OccurredAt = PeriodStart.AddDays(2)
+            OccurredAt = PeriodStart.AddDays(2),
+            ChangedPaths = ["src/Config/RetryPolicy.cs"],
+            Additions = 16,
+            Deletions = 4,
+            ChangedFiles = 1
         },
         new ActivityInput
         {

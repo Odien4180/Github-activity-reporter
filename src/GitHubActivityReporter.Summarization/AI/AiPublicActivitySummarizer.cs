@@ -82,6 +82,12 @@ public sealed class AiPublicActivitySummarizer : IPublicActivitySummarizer
                 Repository = _privacy.ExposeRepositoryNames ? Truncate(e.RepositoryName, 200) : null,
                 Type = e.Type.ToString(),
                 Title = CanExposeTitle(e) ? Truncate(e.Title, 300) : null,
+                ChangedPaths = _summary.UsePublicChangeDetails
+                    ? e.ChangedPaths.Take(_summary.PublicChangeDetailLevel == "detailed" ? 10 : 5).Select(path => Truncate(path, 200)).Where(path => path is not null).Cast<string>().ToArray()
+                    : Array.Empty<string>(),
+                Additions = _summary.UsePublicChangeDetails ? e.Additions : null,
+                Deletions = _summary.UsePublicChangeDetails ? e.Deletions : null,
+                ChangedFiles = _summary.UsePublicChangeDetails ? e.ChangedFiles : null,
                 OccurredAt = e.OccurredAt
             })
             .ToList();
@@ -130,7 +136,7 @@ public sealed class AiPublicActivitySummarizer : IPublicActivitySummarizer
            Summarize only the public GitHub activity facts in the supplied JSON.
            Produce a useful period-level narrative and exactly one concise summary per repository id.
            Describe what changed or what the work was about. Use repository descriptions, languages, topics,
-           and event titles as context, and connect related facts into a concrete account of the work.
+           event titles, changed paths, and diff statistics as context, and connect related facts into a concrete account of the work.
            Treat counts as supporting detail, not as the main summary. When any qualitative evidence is
            available, do not write a summary that merely lists counts or says that N activities occurred.
            The headline should state the dominant development focus. Highlights should group related work
@@ -264,6 +270,10 @@ public sealed class AiPublicActivitySummarizer : IPublicActivitySummarizer
         public string? Repository { get; init; }
         public required string Type { get; init; }
         public string? Title { get; init; }
+        public IReadOnlyList<string> ChangedPaths { get; init; } = Array.Empty<string>();
+        public int? Additions { get; init; }
+        public int? Deletions { get; init; }
+        public int? ChangedFiles { get; init; }
         public required DateTimeOffset OccurredAt { get; init; }
     }
 
