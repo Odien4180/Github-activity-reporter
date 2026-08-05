@@ -1,6 +1,9 @@
 using GitHubActivityReporter.Core.Abstractions;
+using GitHubActivityReporter.Core.Configuration;
 using GitHubActivityReporter.Core.Models;
 using GitHubActivityReporter.Core.Security;
+using GitHubActivityReporter.Cli.Services;
+using GitHubActivityReporter.GitHub.Authentication;
 using GitHubActivityReporter.GitHub.Api;
 using GitHubActivityReporter.GitHub.Collectors;
 using NSubstitute;
@@ -92,6 +95,20 @@ public sealed class GitHubActivityCollectorTests
         await source.DidNotReceive().GetPublicRepositoryAsync("example/example", Arg.Any<CancellationToken>());
     }
 
+    [Fact]
+    public async Task CollectAsync_logs_source_diagnostics_when_available()
+    {
+        var source = Substitute.For<IGitHubEventSource>();
+        source.GetUserEventsAsync("example", Start, Arg.Any<CancellationToken>()).Returns(Array.Empty<GitHubRawEvent>());
+        source.LastDiagnostics.Returns("authenticated-user feed unavailable; used username-scoped fallback feed.");
+        var log = new InMemoryReporterLog();
+        var collector = new GitHubActivityCollector(source, new InMemoryPrivateTermRegistry(), log);
+
+        await collector.CollectAsync(Request(), CancellationToken.None);
+
+        Assert.Contains(log.Lines, line => line.Contains("GitHub event source diagnostics:", StringComparison.Ordinal));
+    }
+
     private static CollectionRequest Request() => new()
     {
         UserName = "example",
@@ -115,4 +132,38 @@ public sealed class GitHubActivityCollectorTests
         IsPrivateRepository = isPrivate,
         OccurredAt = occurredAt ?? Start.AddHours(1)
     };
+}
+
+public sealed class CollectorFactoryTests
+{
+    [Fact]
+    public async Task CreateAsync_reports_environment_token_source()
+    {
+        var configuration = new ReporterConfiguration
+        {
+            GitHub = new GitHubSettings
+            {
+                Username = "example",
+                TokenSecretName = "CUSTOM_TOKEN",
+                ProfileRepository = new ProfileRepositorySettings
+                {
+                    Owner = "example",
+                    Name = "example",
+                    Branch = "main"
+                }
+            }
+        };
+
+        var cli = new GitHubCliClient(tokenProvider: new GitHubTokenProvider(
+            name => name == "CUSTOM_TOKEN" ? "token" : null));
+        var factory = new CollectorFactory(cli);
+
+        var result = await factory.CreateAsync(
+            configuration,
+            new InMemoryPrivateTermRegistry(),
+            new InMemoryReporterLog(),
+            CancellationToken.None);
+
+        Assert.Equal("environment:CUSTOM_TOKEN", result.TokenSource);
+    }
 }

@@ -58,6 +58,10 @@ public sealed class DoctorCommand : AsyncCommand<ReporterSettings>
         checks.Add(authentication.IsAuthenticated
             ? new CheckResult(CheckStatus.Ok, $"GitHub authenticated ({authentication.Source})")
             : new CheckResult(CheckStatus.Failed, authentication.Message ?? "GitHub authentication failed."));
+        foreach (var diagnostic in authentication.Diagnostics)
+        {
+            checks.Add(new CheckResult(authentication.IsAuthenticated ? CheckStatus.Ok : CheckStatus.Warning, diagnostic));
+        }
 
         if (loaded is not null)
         {

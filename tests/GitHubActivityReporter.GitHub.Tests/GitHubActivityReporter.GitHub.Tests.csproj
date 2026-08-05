@@ -16,6 +16,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\GitHubActivityReporter.Core\GitHubActivityReporter.Core.csproj" />
+    <ProjectReference Include="..\..\src\GitHubActivityReporter.Cli\GitHubActivityReporter.Cli.csproj" />
     <ProjectReference Include="..\..\src\GitHubActivityReporter.GitHub\GitHubActivityReporter.GitHub.csproj" />
   </ItemGroup>
 

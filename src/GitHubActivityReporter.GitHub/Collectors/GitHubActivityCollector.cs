@@ -57,6 +57,11 @@ public sealed class GitHubActivityCollector : IActivityCollector
             .GetUserEventsAsync(request.UserName, request.PeriodStart, cancellationToken)
             .ConfigureAwait(false);
 
+        if (!string.IsNullOrWhiteSpace(_source.LastDiagnostics))
+        {
+            _log.Warning($"GitHub event source diagnostics: {_source.LastDiagnostics}");
+        }
+
         var deduplicated = rawEvents
             .GroupBy(e => e.Id, StringComparer.Ordinal)
             .Select(g => g.First())
@@ -65,6 +70,7 @@ public sealed class GitHubActivityCollector : IActivityCollector
         var rawPrivate = deduplicated.Count(e => e.IsPrivateRepository);
         var rawInWindow = deduplicated.Count(e => request.Contains(e.OccurredAt));
         _log.Debug($"Deduped events: {deduplicated.Length} total ({rawPrivate} private), {rawInWindow} within reporting window.");
+        _log.Debug($"Collection request: public={request.CollectPublic}, private={request.CollectPrivate}, since={request.PeriodStart:u}, until={request.PeriodEnd:u}.");
 
         var builder = new CollectedActivityBuilder(_privateTerms);
         var metadataCache = new Dictionary<string, GitHubRepositoryInfo?>(StringComparer.OrdinalIgnoreCase);

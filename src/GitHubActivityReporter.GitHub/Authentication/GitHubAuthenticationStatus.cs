@@ -12,8 +12,11 @@ public sealed record GitHubAuthenticationStatus
     /// <summary>Safe, token free description of the failure.</summary>
     public string? Message { get; init; }
 
-    public static GitHubAuthenticationStatus NotAuthenticated(string message)
-        => new() { IsAuthenticated = false, Message = message };
+    /// <summary>Safe diagnostic details for logs and doctor output.</summary>
+    public IReadOnlyList<string> Diagnostics { get; init; } = Array.Empty<string>();
+
+    public static GitHubAuthenticationStatus NotAuthenticated(string message, IReadOnlyList<string>? diagnostics = null)
+        => new() { IsAuthenticated = false, Message = message, Diagnostics = diagnostics ?? Array.Empty<string>() };
 }
 
 public interface IGitHubAuthenticationProbe
