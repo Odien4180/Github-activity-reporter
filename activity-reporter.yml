@@ -5,7 +5,7 @@ github:
     owner: Odien4180
     name: Odien4180
     branch: master
-  token_secret_name: ACTIVITY_REPORTER_GITHUB_TOKEN
+  token_secret_name: GIT_ACCESS_TOKEN
 collection:
   period:
     mode: last24-hours

@@ -48,19 +48,19 @@ dotnet run --project src/GitHubActivityReporter.Cli -- run \
 
 ## 인증
 
-기본 설정의 `github.token_secret_name` 값은 `ACTIVITY_REPORTER_GITHUB_TOKEN`입니다.
+기본 설정의 `github.token_secret_name` 값은 `GIT_ACCESS_TOKEN`입니다.
 
 PowerShell:
 
 ```powershell
-$env:ACTIVITY_REPORTER_GITHUB_TOKEN = "github-token"
+$env:GIT_ACCESS_TOKEN = "github-token"
 dotnet run --project src/GitHubActivityReporter.Cli -- doctor --config activity-reporter.yml
 ```
 
 Bash:
 
 ```bash
-export ACTIVITY_REPORTER_GITHUB_TOKEN="github-token"
+export GIT_ACCESS_TOKEN="github-token"
 dotnet run --project src/GitHubActivityReporter.Cli -- doctor --config activity-reporter.yml
 ```
 
@@ -189,7 +189,7 @@ summary:
     max_retries: 2
 ```
 
-OpenAI Provider는 [Responses API](https://developers.openai.com/api/reference/resources/responses/methods/create)를 사용합니다. GitHub Copilot으로 실행하려면 `provider: github-copilot`, `model: auto`, `api_key_secret_name: ACTIVITY_REPORTER_GITHUB_TOKEN`을 설정합니다. Copilot Provider는 Fine-grained PAT와 `Copilot Requests` 권한이 필요하며, Classic PAT(`ghp_` prefix)는 지원하지 않습니다. 생성 workflow는 별도의 `models: read` 권한이나 추가 Secret 없이 `ACTIVITY_REPORTER_GITHUB_TOKEN` 하나로 동작합니다.
+OpenAI Provider는 [Responses API](https://developers.openai.com/api/reference/resources/responses/methods/create)를 사용합니다. GitHub Copilot으로 실행하려면 `provider: github-copilot`, `model: auto`, `api_key_secret_name: ACTIVITY_REPORTER_GITHUB_TOKEN`을 설정합니다. Copilot Provider는 Fine-grained PAT와 `Copilot Requests` 권한이 필요하며, Classic PAT(`ghp_` prefix)는 지원하지 않습니다. 생성 workflow는 활동 수집용 `GIT_ACCESS_TOKEN`과 요약용 `ACTIVITY_REPORTER_GITHUB_TOKEN`을 함께 사용합니다.
 
 ### GitHub Copilot 설정 예시
 

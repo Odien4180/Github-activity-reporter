@@ -8,6 +8,7 @@ public sealed class GitHubTokenProvider
 {
     public static readonly string[] DefaultEnvironmentVariables =
     [
+        "GIT_ACCESS_TOKEN",
         "ACTIVITY_REPORTER_GITHUB_TOKEN",
         "GITHUB_TOKEN",
         "GH_TOKEN"

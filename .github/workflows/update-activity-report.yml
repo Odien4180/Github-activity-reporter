@@ -31,7 +31,7 @@ jobs:
           repository: Odien4180/Odien4180
           ref: master
           path: profile-repository
-          token: ${{ secrets.ACTIVITY_REPORTER_GITHUB_TOKEN }}
+          token: ${{ secrets.GIT_ACCESS_TOKEN }}
           fetch-depth: 0
 
       - name: Setup .NET
@@ -55,6 +55,7 @@ jobs:
 
       - name: Generate and publish activity report
         env:
+          GIT_ACCESS_TOKEN: ${{ secrets.GIT_ACCESS_TOKEN }}
           ACTIVITY_REPORTER_GITHUB_TOKEN: ${{ secrets.ACTIVITY_REPORTER_GITHUB_TOKEN }}
         run: dotnet run --project src/GitHubActivityReporter.Cli --configuration Release --no-build -- run --config activity-reporter.github-copilot.yml --profile-path profile-repository --verbose
 
