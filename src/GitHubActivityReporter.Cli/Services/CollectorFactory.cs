@@ -51,7 +51,7 @@ public sealed class CollectorFactory
         return new CollectorCreationResult
         {
             Collector = GitHubActivityCollector.Create(token!, privateTerms, log),
-            TokenSource = "resolved credential"
+            TokenSource = _cli.DescribeTokenSource(configuration.GitHub.TokenSecretName)
         };
     }
 }

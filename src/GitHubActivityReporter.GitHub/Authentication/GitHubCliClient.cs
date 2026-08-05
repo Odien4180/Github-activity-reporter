@@ -33,7 +33,8 @@ public sealed class GitHubCliClient : IGitHubAuthenticationProbe
             {
                 IsAuthenticated = true,
                 UserName = login,
-                Source = $"environment:{variable}"
+                Source = $"environment:{variable}",
+                Diagnostics = BuildEnvironmentDiagnostics(tokenEnvironmentVariable, variable)
             };
         }
 
@@ -41,7 +42,8 @@ public sealed class GitHubCliClient : IGitHubAuthenticationProbe
         if (!status.Succeeded)
         {
             return GitHubAuthenticationStatus.NotAuthenticated(
-                "No GitHub credential found. Set a token environment variable or run 'gh auth login'.");
+                "No GitHub credential found. Set a token environment variable or run 'gh auth login'.",
+                BuildFailureDiagnostics(tokenEnvironmentVariable, status));
         }
 
         var cliLogin = await GetLoginAsync(cancellationToken).ConfigureAwait(false);
@@ -49,7 +51,8 @@ public sealed class GitHubCliClient : IGitHubAuthenticationProbe
         {
             IsAuthenticated = true,
             UserName = cliLogin,
-            Source = "gh-cli"
+            Source = "gh-cli",
+            Diagnostics = BuildGhCliDiagnostics(tokenEnvironmentVariable)
         };
     }
 
@@ -115,4 +118,44 @@ public sealed class GitHubCliClient : IGitHubAuthenticationProbe
         return result.Succeeded
                && result.StandardOutput.Contains(secretName, StringComparison.Ordinal);
     }
+
+    public string DescribeTokenSource(string? tokenEnvironmentVariable)
+    {
+        var variable = _tokenProvider.FindTokenVariableName(tokenEnvironmentVariable);
+        return variable is not null ? $"environment:{variable}" : "gh-cli";
+    }
+
+    private IReadOnlyList<string> BuildEnvironmentDiagnostics(string? preferredVariable, string resolvedVariable)
+        => BuildCandidateProbeDiagnostics(preferredVariable)
+            .Append($"Resolved token source: environment variable '{resolvedVariable}'.")
+            .ToArray();
+
+    private IReadOnlyList<string> BuildGhCliDiagnostics(string? preferredVariable)
+        => BuildCandidateProbeDiagnostics(preferredVariable)
+            .Append("Resolved token source: gh auth token.")
+            .ToArray();
+
+    private IReadOnlyList<string> BuildFailureDiagnostics(string? preferredVariable, ProcessResult status)
+    {
+        var diagnostics = BuildCandidateProbeDiagnostics(preferredVariable).ToList();
+        diagnostics.Add("Resolved token source: none.");
+        diagnostics.Add($"gh auth status exit code: {status.ExitCode}.");
+        if (!string.IsNullOrWhiteSpace(status.StandardError))
+        {
+            diagnostics.Add($"gh auth status stderr: {status.StandardError}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(status.StandardOutput))
+        {
+            diagnostics.Add($"gh auth status stdout: {status.StandardOutput}");
+        }
+
+        return diagnostics;
+    }
+
+    private IReadOnlyList<string> BuildCandidateProbeDiagnostics(string? preferredVariable)
+        => _tokenProvider.GetCandidateVariableNames(preferredVariable)
+            .Select(name => $"{name}={(string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(name)) ? "missing" : "set")}")
+            .Prepend("Credential probe order: " + string.Join(", ", _tokenProvider.GetCandidateVariableNames(preferredVariable)))
+            .ToArray();
 }

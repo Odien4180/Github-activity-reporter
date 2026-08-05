@@ -3,6 +3,7 @@ using GitHubActivityReporter.GitHub.Api;
 using NSubstitute;
 using Octokit;
 using System.Net;
+using GitHubActivityReporter.Core.Abstractions;
 
 namespace GitHubActivityReporter.GitHub.Tests;
 
@@ -210,6 +211,41 @@ public sealed class OctokitEventSourceTests
         Assert.Equal("example-user/public-repository", commit.RepositoryFullName);
         Assert.False(commit.IsPrivateRepository);
         await eventsClient.Received(2).GetAllUserPerformed("example-user", Arg.Any<ApiOptions>());
+        Assert.Contains("authenticated-user", source.LastDiagnostics);
+        Assert.Contains("status=404", source.LastDiagnostics);
+    }
+
+    [Fact]
+    public async Task GetUserEventsAsync_logs_authenticated_feed_failure_reason()
+    {
+        var client = Substitute.For<IGitHubClient>();
+        var connection = Substitute.For<IApiConnection>();
+        var log = new InMemoryReporterLog();
+        var activities = Substitute.For<IActivitiesClient>();
+        var eventsClient = Substitute.For<IEventsClient>();
+        var organizations = Substitute.For<IOrganizationsClient>();
+        client.Activity.Returns(activities);
+        activities.Events.Returns(eventsClient);
+        client.Organization.Returns(organizations);
+
+        var start = DateTimeOffset.Parse("2026-07-26T00:00:00Z");
+        connection.GetAll<Activity>(
+                Arg.Is<Uri>(uri => MatchesAuthenticatedUserEventsUri(uri)),
+                Arg.Any<ApiOptions>())
+            .Returns<Task<IReadOnlyList<Activity>>>(_ => throw new ApiException("bad credentials", HttpStatusCode.Forbidden));
+        eventsClient.GetAllUserPerformed(
+                "example-user",
+                Arg.Any<ApiOptions>())
+            .Returns(Task.FromResult<IReadOnlyList<Activity>>(Array.Empty<Activity>()));
+        organizations.GetAllForCurrent(Arg.Any<ApiOptions>())
+            .Returns(Task.FromResult<IReadOnlyList<Organization>>(Array.Empty<Organization>()));
+
+        var source = new OctokitEventSource(client, log: log, apiConnection: connection);
+
+        await source.GetUserEventsAsync("example-user", start, CancellationToken.None);
+
+        Assert.Contains(log.Lines, line => line.Contains("Authenticated-user feed failed:", StringComparison.Ordinal));
+        Assert.Contains(log.Lines, line => line.Contains("status=403", StringComparison.Ordinal));
     }
 
     private static Organization CreateOrganization(string login) => new(

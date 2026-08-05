@@ -53,6 +53,8 @@ internal interface IGitHubEventSource
         DateTimeOffset since,
         CancellationToken cancellationToken);
 
+    string? LastDiagnostics { get; }
+
     /// <summary>Only ever called for public repositories.</summary>
     Task<GitHubRepositoryInfo?> GetPublicRepositoryAsync(
         string fullName,

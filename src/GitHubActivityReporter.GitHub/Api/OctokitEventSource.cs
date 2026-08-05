@@ -15,6 +15,7 @@ internal sealed class OctokitEventSource : IGitHubEventSource
     private readonly IReporterLog _log;
     private readonly Dictionary<string, GitHubRepositoryInfo?> _repositoryCache = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, PushCompareResult?> _pushCompareCache = new(StringComparer.Ordinal);
+    public string? LastDiagnostics { get; private set; }
 
     public OctokitEventSource(
         IGitHubClient client,
@@ -36,11 +37,13 @@ internal sealed class OctokitEventSource : IGitHubEventSource
         CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(userName);
+        LastDiagnostics = null;
 
         var results = new List<GitHubRawEvent>();
 
         if (!await TryAppendAuthenticatedUserActivitiesAsync(results, since, cancellationToken).ConfigureAwait(false))
         {
+            LastDiagnostics ??= "authenticated-user feed unavailable; used username-scoped fallback feed.";
             await AppendActivitiesAsync(
                     results,
                     since,
@@ -87,10 +90,12 @@ internal sealed class OctokitEventSource : IGitHubEventSource
 
             return true;
         }
-        catch (ApiException)
+        catch (ApiException exception)
         {
             // Fall back to the username-scoped feed for older environments or
             // credentials that do not expose the authenticated-user endpoint.
+            LastDiagnostics = BuildApiFailureDiagnostic("authenticated-user", exception);
+            _log.Warning($"Authenticated-user feed failed: {LastDiagnostics}");
             return false;
         }
     }
@@ -258,6 +263,16 @@ internal sealed class OctokitEventSource : IGitHubEventSource
         {
             _pushCompareCache[cacheKey] = null;
             return null;
+        }
+
+        private static string BuildApiFailureDiagnostic(string feedLabel, ApiException exception)
+        {
+            var status = exception.StatusCode is null ? "unknown" : ((int)exception.StatusCode).ToString();
+            var apiMessage = string.IsNullOrWhiteSpace(exception.ApiError?.Message)
+                ? exception.Message
+                : exception.ApiError.Message;
+
+            return $"{feedLabel} status={status}, error={apiMessage}";
         }
     }
 

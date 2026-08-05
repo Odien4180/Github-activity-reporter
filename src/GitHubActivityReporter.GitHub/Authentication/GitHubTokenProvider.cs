@@ -22,15 +22,7 @@ public sealed class GitHubTokenProvider
 
     public string? TryGetToken(string? preferredVariable = null)
     {
-        var candidates = new List<string>();
-        if (!string.IsNullOrWhiteSpace(preferredVariable))
-        {
-            candidates.Add(preferredVariable!);
-        }
-
-        candidates.AddRange(DefaultEnvironmentVariables);
-
-        foreach (var candidate in candidates.Distinct(StringComparer.Ordinal))
+        foreach (var candidate in EnumerateCandidateNames(preferredVariable))
         {
             var value = _environmentReader(candidate);
             if (!string.IsNullOrWhiteSpace(value))
@@ -45,6 +37,15 @@ public sealed class GitHubTokenProvider
     /// <summary>Name of the environment variable that currently provides a token, if any.</summary>
     public string? FindTokenVariableName(string? preferredVariable = null)
     {
+        return EnumerateCandidateNames(preferredVariable)
+            .FirstOrDefault(name => !string.IsNullOrWhiteSpace(_environmentReader(name)));
+    }
+
+    public IReadOnlyList<string> GetCandidateVariableNames(string? preferredVariable = null)
+        => EnumerateCandidateNames(preferredVariable).ToArray();
+
+    private static IEnumerable<string> EnumerateCandidateNames(string? preferredVariable)
+    {
         var candidates = new List<string>();
         if (!string.IsNullOrWhiteSpace(preferredVariable))
         {
@@ -52,9 +53,6 @@ public sealed class GitHubTokenProvider
         }
 
         candidates.AddRange(DefaultEnvironmentVariables);
-
-        return candidates
-            .Distinct(StringComparer.Ordinal)
-            .FirstOrDefault(name => !string.IsNullOrWhiteSpace(_environmentReader(name)));
+        return candidates.Distinct(StringComparer.Ordinal);
     }
 }
