@@ -57,16 +57,43 @@ public sealed class WorkflowGeneratorTests
         configuration.Publishers.Email.Enabled = true;
         configuration.Publishers.Slack.Enabled = true;
         configuration.Privacy.Public.AiSummary = true;
-        configuration.Summary.Ai.Provider = "github-models";
-        configuration.Summary.Ai.Model = "openai/gpt-4.1";
-        configuration.Summary.Ai.ApiKeySecretName = "GITHUB_TOKEN";
+        configuration.Summary.Ai.Provider = "github-copilot";
+        configuration.Summary.Ai.Model = "auto";
+        configuration.Summary.Ai.ApiKeySecretName = "ACTIVITY_REPORTER_GITHUB_TOKEN";
 
         var workflow = new WorkflowGenerator().Generate(configuration);
 
-        Assert.Contains("models: read", workflow, StringComparison.Ordinal);
+        Assert.DoesNotContain("models: read", workflow, StringComparison.Ordinal);
+        Assert.DoesNotContain("COPILOT_GITHUB_TOKEN", workflow, StringComparison.Ordinal);
+        Assert.Contains("ACTIVITY_REPORTER_GITHUB_TOKEN: ${{ secrets.ACTIVITY_REPORTER_GITHUB_TOKEN }}", workflow, StringComparison.Ordinal);
         Assert.Contains("EMAIL_CREDENTIALS: ${{ secrets.EMAIL_CREDENTIALS }}", workflow, StringComparison.Ordinal);
         Assert.Contains("SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}", workflow, StringComparison.Ordinal);
-        Assert.Contains("GITHUB_TOKEN: ${{ github.token }}", workflow, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Generate_does_not_emit_models_read_permission()
+    {
+        var configuration = ReporterConfiguration.CreateDefault("example-user");
+        configuration.Privacy.Public.AiSummary = true;
+        configuration.Summary.Ai.Provider = "github-copilot";
+        configuration.Summary.Ai.Model = "auto";
+        configuration.Summary.Ai.ApiKeySecretName = "ACTIVITY_REPORTER_GITHUB_TOKEN";
+
+        var workflow = new WorkflowGenerator().Generate(configuration);
+
+        Assert.DoesNotContain("models: read", workflow, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Generate_uses_github_copilot_config_path_when_specified()
+    {
+        var configuration = ReporterConfiguration.CreateDefault("example-user");
+        var options = new WorkflowOptions { ConfigPath = "activity-reporter.github-copilot.yml" };
+
+        var workflow = new WorkflowGenerator().Generate(configuration, options);
+
+        Assert.Contains("activity-reporter.github-copilot.yml", workflow, StringComparison.Ordinal);
+        Assert.DoesNotContain("activity-reporter.github-models.yml", workflow, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -75,7 +102,7 @@ public sealed class WorkflowGeneratorTests
         var root = CreateTemporaryDirectory();
         try
         {
-            var configPath = Path.Combine(root, "config", "activity-reporter.github-models.yml");
+            var configPath = Path.Combine(root, "config", "activity-reporter.github-copilot.yml");
             Directory.CreateDirectory(Path.GetDirectoryName(configPath)!);
             await File.WriteAllTextAsync(configPath, "version: 1");
 
@@ -85,7 +112,7 @@ public sealed class WorkflowGeneratorTests
                 configurationPath: configPath);
 
             Assert.Contains(
-                "--config config/activity-reporter.github-models.yml",
+                "--config config/activity-reporter.github-copilot.yml",
                 result.Content,
                 StringComparison.Ordinal);
         }

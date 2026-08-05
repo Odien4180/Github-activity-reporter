@@ -4,7 +4,7 @@ This document tracks operational verification that cannot be performed safely wi
 
 ## Completed live verification
 
-- GitHub Models public activity summary using a user-provided token with `models: read` permission. The generated preview was reviewed by the user, and the resulting feedback was incorporated into the richer narrative summary format.
+- GitHub Copilot public activity summary using a user-provided Fine-grained PAT with `Copilot Requests` permission. The generated preview was reviewed by the user, and the resulting feedback was incorporated into the richer narrative summary format.
 
 ## Live smoke tests
 

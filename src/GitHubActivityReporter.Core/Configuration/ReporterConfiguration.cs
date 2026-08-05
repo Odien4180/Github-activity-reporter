@@ -255,7 +255,7 @@ public sealed class SummarySettings
 
 public sealed class AiSummarySettings
 {
-    /// <summary>Supported values are openai and github-models.</summary>
+    /// <summary>Supported values are openai and github-copilot.</summary>
     public string Provider { get; set; } = "openai";
 
     public string Model { get; set; } = "gpt-5.6-sol";

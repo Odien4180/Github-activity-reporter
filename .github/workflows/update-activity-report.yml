@@ -10,7 +10,6 @@ on:
 
 permissions:
   contents: read
-  models: read
 
 concurrency:
   group: activity-report
@@ -57,11 +56,10 @@ jobs:
       - name: Generate and publish activity report
         env:
           ACTIVITY_REPORTER_GITHUB_TOKEN: ${{ secrets.ACTIVITY_REPORTER_GITHUB_TOKEN }}
-          GITHUB_TOKEN: ${{ github.token }}
-        run: dotnet run --project src/GitHubActivityReporter.Cli --configuration Release --no-build -- run --config activity-reporter.github-models.yml --profile-path profile-repository --verbose
+        run: dotnet run --project src/GitHubActivityReporter.Cli --configuration Release --no-build -- run --config activity-reporter.github-copilot.yml --profile-path profile-repository --verbose
 
       - name: Validate generated output
-        run: dotnet run --project src/GitHubActivityReporter.Cli --configuration Release --no-build -- validate --config activity-reporter.github-models.yml --path profile-repository/generated
+        run: dotnet run --project src/GitHubActivityReporter.Cli --configuration Release --no-build -- validate --config activity-reporter.github-copilot.yml --path profile-repository/generated
 
       - name: Detect profile changes
         id: profile_changes

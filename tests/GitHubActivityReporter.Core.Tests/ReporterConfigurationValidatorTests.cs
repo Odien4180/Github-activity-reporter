@@ -87,6 +87,50 @@ public sealed class ReporterConfigurationValidatorTests
     }
 
     [Fact]
+    public void Public_ai_summary_accepts_github_copilot_provider()
+    {
+        var config = ReporterConfiguration.CreateDefault("example-user");
+        config.Privacy.Public.AiSummary = true;
+        config.Summary.Ai.Provider = "github-copilot";
+        config.Summary.Ai.Model = "auto";
+        config.Summary.Ai.ApiKeySecretName = "ACTIVITY_REPORTER_GITHUB_TOKEN";
+
+        var result = new ReporterConfigurationValidator().Validate(config);
+
+        Assert.True(result.IsValid, string.Join(Environment.NewLine, result.Errors.Select(e => e.ErrorMessage)));
+    }
+
+    [Fact]
+    public void Public_ai_summary_rejects_github_models_provider_with_migration_message()
+    {
+        var config = ReporterConfiguration.CreateDefault("example-user");
+        config.Privacy.Public.AiSummary = true;
+        config.Summary.Ai.Provider = "github-models";
+        config.Summary.Ai.Model = "openai/gpt-4.1";
+
+        var result = new ReporterConfigurationValidator().Validate(config);
+
+        Assert.False(result.IsValid);
+        var providerError = Assert.Single(result.Errors, e => e.PropertyName == "Summary.Ai.Provider");
+        Assert.Contains("github-copilot", providerError.ErrorMessage, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Public_ai_summary_accepts_github_copilot_with_empty_model()
+    {
+        // github-copilot defaults model to 'auto' so empty is allowed.
+        var config = ReporterConfiguration.CreateDefault("example-user");
+        config.Privacy.Public.AiSummary = true;
+        config.Summary.Ai.Provider = "github-copilot";
+        config.Summary.Ai.Model = string.Empty;
+        config.Summary.Ai.ApiKeySecretName = "ACTIVITY_REPORTER_GITHUB_TOKEN";
+
+        var result = new ReporterConfigurationValidator().Validate(config);
+
+        Assert.True(result.IsValid, string.Join(Environment.NewLine, result.Errors.Select(e => e.ErrorMessage)));
+    }
+
+    [Fact]
     public void Public_change_detail_level_must_be_supported()
     {
         var config = ReporterConfiguration.CreateDefault("example-user");
