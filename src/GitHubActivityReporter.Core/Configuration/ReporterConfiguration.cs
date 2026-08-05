@@ -242,6 +242,10 @@ public sealed class SummarySettings
 
     public string Style { get; set; } = "concise";
 
+    public bool UsePublicChangeDetails { get; set; } = true;
+
+    public string PublicChangeDetailLevel { get; set; } = "standard";
+
     public int MaxPublicRepositories { get; set; } = 5;
 
     public int MaxItemsPerRepository { get; set; } = 3;

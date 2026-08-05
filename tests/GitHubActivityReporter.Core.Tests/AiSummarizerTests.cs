@@ -164,6 +164,18 @@ public sealed class AiSummarizerTests
     }
 
     [Fact]
+    public async Task Rule_based_summary_prefers_changed_paths_when_enabled()
+    {
+        var settings = new SummarySettings { Language = "ko", UsePublicChangeDetails = true, PublicChangeDetailLevel = "standard" };
+
+        var result = await new RuleBasedPublicActivitySummarizer(settings)
+            .SummarizeAsync(PublicEvents(), CancellationToken.None);
+
+        var repository = Assert.Single(result.Repositories);
+        Assert.Contains("설정 흐름", repository.Summary, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task OpenAi_client_uses_responses_api_limits_and_extracts_output_text()
     {
         var handler = new RecordingHandler(_ => JsonResponse(
@@ -214,6 +226,10 @@ public sealed class AiSummarizerTests
             Language = "C#",
             Topics = ["reporting", "github"],
             Title = "PUBLIC_TITLE_SENTINEL",
+            ChangedPaths = ["src/Config/Flow.cs", "src/Validation/ConnectionGuard.cs"],
+            Additions = 20,
+            Deletions = 5,
+            ChangedFiles = 2,
             OccurredAt = DateTimeOffset.Parse("2026-07-27T00:00:00Z")
         },
         new PublicActivityEvent
@@ -225,6 +241,10 @@ public sealed class AiSummarizerTests
             Language = "C#",
             Topics = ["reporting", "github"],
             Title = "Implement reliable retry flow",
+            ChangedPaths = ["src/Validation/RetryPolicy.cs"],
+            Additions = 12,
+            Deletions = 3,
+            ChangedFiles = 1,
             OccurredAt = DateTimeOffset.Parse("2026-07-26T00:00:00Z")
         }
     ];

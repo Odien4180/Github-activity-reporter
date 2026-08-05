@@ -94,6 +94,10 @@ public sealed class CollectedActivityBuilder
             Description = input.RepositoryDescription,
             Language = input.Language,
             Topics = input.Topics,
+            ChangedPaths = input.ChangedPaths,
+            Additions = input.Additions,
+            Deletions = input.Deletions,
+            ChangedFiles = input.ChangedFiles,
             OccurredAt = input.OccurredAt
         });
 

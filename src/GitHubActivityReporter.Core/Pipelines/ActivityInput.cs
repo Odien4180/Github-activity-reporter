@@ -29,6 +29,14 @@ public sealed record ActivityInput
 
     public IReadOnlyList<string> Topics { get; init; } = Array.Empty<string>();
 
+    public IReadOnlyList<string> ChangedPaths { get; init; } = Array.Empty<string>();
+
+    public int? Additions { get; init; }
+
+    public int? Deletions { get; init; }
+
+    public int? ChangedFiles { get; init; }
+
     /// <summary>Additional strings that must be treated as private identifiers (branch, organisation, ...).</summary>
     public IReadOnlyList<string> AdditionalIdentifiers { get; init; } = Array.Empty<string>();
 

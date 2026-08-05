@@ -22,6 +22,14 @@ internal sealed record GitHubRawEvent
     public string? Title { get; init; }
 
     public string? Url { get; init; }
+
+    public IReadOnlyList<string> ChangedPaths { get; init; } = Array.Empty<string>();
+
+    public int? Additions { get; init; }
+
+    public int? Deletions { get; init; }
+
+    public int? ChangedFiles { get; init; }
 }
 
 /// <summary>Public repository metadata used to enrich public activity.</summary>

@@ -104,6 +104,10 @@ public sealed class ReporterConfigurationValidator : AbstractValidator<ReporterC
             .Must(l => l is "ko" or "en")
             .WithMessage("summary.language must be 'ko' or 'en'.");
 
+        RuleFor(c => c.Summary.PublicChangeDetailLevel)
+            .Must(level => level is "compact" or "standard" or "detailed")
+            .WithMessage("summary.public_change_detail_level must be 'compact', 'standard', or 'detailed'.");
+
         RuleFor(c => c.Summary.MaxPublicRepositories)
             .InclusiveBetween(1, 50)
             .WithMessage("summary.max_public_repositories must be between 1 and 50.");

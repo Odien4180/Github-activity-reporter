@@ -70,6 +70,8 @@ privacy:
 summary:
   language: ko
   style: concise
+  use_public_change_details: true
+  public_change_detail_level: standard
   max_public_repositories: 5
   max_items_per_repository: 3
   ai:
