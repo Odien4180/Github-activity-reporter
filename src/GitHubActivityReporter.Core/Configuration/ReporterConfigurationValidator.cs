@@ -65,13 +65,14 @@ public sealed class ReporterConfigurationValidator : AbstractValidator<ReporterC
             .WithMessage("privacy.private.ai_summary must be false. Private activity is never sent to a summarizer.");
 
         RuleFor(c => c.Summary.Ai.Provider)
-            .Must(provider => provider is "openai" or "github-models")
+            .Must(provider => provider is "openai" or "github-copilot")
             .When(c => c.Privacy.Public.AiSummary)
-            .WithMessage("summary.ai.provider must be 'openai' or 'github-models'.");
+            .WithMessage("summary.ai.provider must be 'openai' or 'github-copilot'. " +
+                         "If you are migrating from 'github-models', change provider to 'github-copilot' and model to 'auto'.");
 
         RuleFor(c => c.Summary.Ai.Model)
             .NotEmpty()
-            .When(c => c.Privacy.Public.AiSummary)
+            .When(c => c.Privacy.Public.AiSummary && c.Summary.Ai.Provider != "github-copilot")
             .WithMessage("summary.ai.model is required when public AI summary is enabled.");
 
         RuleFor(c => c.Summary.Ai.ApiKeySecretName)

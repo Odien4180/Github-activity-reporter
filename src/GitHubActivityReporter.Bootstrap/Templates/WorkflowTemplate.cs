@@ -23,9 +23,6 @@ public static class WorkflowTemplate
 
         permissions:
           contents: read
-        {{- if ai_summary_enabled && ai_provider == "github-models" }}
-          models: read
-        {{- end }}
 
         concurrency:
           group: activity-report
@@ -78,12 +75,8 @@ public static class WorkflowTemplate
         {{- if slack_enabled }}
                   {{ slack_secret_name }}: ${{ '{{' }} secrets.{{ slack_secret_name }} {{ '}}' }}
         {{- end }}
-        {{- if ai_summary_enabled }}
-        {{- if ai_uses_github_token }}
-                  {{ ai_secret_name }}: ${{ '{{' }} github.token {{ '}}' }}
-        {{- else }}
+        {{- if ai_summary_enabled && ai_secret_name != token_secret_name }}
                   {{ ai_secret_name }}: ${{ '{{' }} secrets.{{ ai_secret_name }} {{ '}}' }}
-        {{- end }}
         {{- end }}
                 run: dotnet run --project {{ cli_project_path }} --configuration Release --no-build -- run --config {{ config_path }} --profile-path {{ profile_repository_path }} --verbose
 

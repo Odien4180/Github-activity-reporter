@@ -73,8 +73,8 @@ summary:
   max_public_repositories: 5
   max_items_per_repository: 3
   ai:
-    provider: github-models
-    model: openai/gpt-4.1
+    provider: github-copilot
+    model: auto
     api_key_secret_name: ACTIVITY_REPORTER_GITHUB_TOKEN
     include_public_commit_messages: true
     max_input_events: 50
@@ -127,5 +127,5 @@ publishers:
 schedule:
   enabled: true
   timezone: Asia/Seoul
-  local_time: 09:00
+  local_time: "09:00"
   frequency: daily

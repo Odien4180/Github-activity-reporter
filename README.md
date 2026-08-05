@@ -189,7 +189,46 @@ summary:
     max_retries: 2
 ```
 
-OpenAI Provider는 [Responses API](https://developers.openai.com/api/reference/resources/responses/methods/create)를 사용합니다. GitHub 자격 증명으로 실행하려면 `provider: github-models`, GitHub Models catalog의 모델 ID(예: `openai/gpt-4.1`), `api_key_secret_name: GITHUB_TOKEN`을 설정합니다. 생성 workflow는 이 경우 `models: read` 권한을 추가합니다.
+OpenAI Provider는 [Responses API](https://developers.openai.com/api/reference/resources/responses/methods/create)를 사용합니다. GitHub Copilot으로 실행하려면 `provider: github-copilot`, `model: auto`, `api_key_secret_name: ACTIVITY_REPORTER_GITHUB_TOKEN`을 설정합니다. Copilot Provider는 Fine-grained PAT와 `Copilot Requests` 권한이 필요하며, Classic PAT(`ghp_` prefix)는 지원하지 않습니다. 생성 workflow는 별도의 `models: read` 권한이나 추가 Secret 없이 `ACTIVITY_REPORTER_GITHUB_TOKEN` 하나로 동작합니다.
+
+### GitHub Copilot 설정 예시
+
+```yaml
+summary:
+  ai:
+    provider: github-copilot
+    model: auto
+    api_key_secret_name: ACTIVITY_REPORTER_GITHUB_TOKEN
+```
+
+### GitHub Copilot 토큰 안내
+
+- Fine-grained personal access token 필요
+- `Copilot Requests` 권한 필요
+- Classic PAT(`ghp_` prefix) 미지원
+- 기존 활동 수집 및 프로필 저장소 권한도 동일 토큰에 포함
+- 토큰 값은 설정 파일에 직접 기록하지 않고 Secret으로 관리
+
+```bash
+gh secret set ACTIVITY_REPORTER_GITHUB_TOKEN
+```
+
+### GitHub Models에서 마이그레이션
+
+```yaml
+# 이전
+summary:
+  ai:
+    provider: github-models
+    model: openai/gpt-4.1
+
+# 변경
+summary:
+  ai:
+    provider: github-copilot
+    model: auto
+    api_key_secret_name: ACTIVITY_REPORTER_GITHUB_TOKEN
+```
 
 AI에는 설정에서 노출을 허용한 공개 제목과 공개 변경 메타데이터만 전달됩니다. 요청은 실행당 한 번으로 제한되고 입력 이벤트·문자·출력 토큰, timeout, retry 상한을 적용합니다. 응답이 실패하거나 형식 검증을 통과하지 못하면 규칙 기반 요약으로 자동 복구됩니다. 규칙 기반 요약도 공개 제목, 저장소 설명, 변경 파일 경로, diff 통계를 바탕으로 실제 작업 주제를 먼저 설명하며 활동 건수는 별도의 참고 지표로만 표시합니다.
 

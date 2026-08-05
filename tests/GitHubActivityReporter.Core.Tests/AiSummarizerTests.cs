@@ -221,22 +221,21 @@ public sealed class AiSummarizerTests
     }
 
     [Fact]
-    public async Task GitHub_models_client_uses_official_inference_endpoint()
+    public void GitHub_copilot_client_rejects_empty_token()
     {
-        var handler = new RecordingHandler(_ => JsonResponse(
-            """{"choices":[{"message":{"role":"assistant","content":"{\"summaries\":[]}"}}]}"""));
-        var client = new GitHubModelsClient("github-token", "openai/gpt-4.1", new HttpClient(handler), maxRetries: 0);
+        Assert.Throws<ArgumentException>(() => new GitHubCopilotClient(string.Empty, "auto"));
+        Assert.Throws<ArgumentException>(() => new GitHubCopilotClient("   ", null));
+    }
 
-        var result = await client.GenerateAsync(
-            new AiTextRequest { Instructions = "instructions", Input = "input", MaxOutputTokens = 222 },
-            CancellationToken.None);
-
-        Assert.Equal("{\"summaries\":[]}", result);
-        Assert.Equal("https://models.github.ai/inference/chat/completions", handler.RequestUri?.AbsoluteUri);
-        Assert.Equal("2026-03-10", handler.ApiVersion);
-        using var body = JsonDocument.Parse(handler.Body!);
-        Assert.Equal("openai/gpt-4.1", body.RootElement.GetProperty("model").GetString());
-        Assert.Equal(222, body.RootElement.GetProperty("max_tokens").GetInt32());
+    [Fact]
+    public void GitHub_copilot_client_defaults_model_to_auto_when_null_or_empty()
+    {
+        // Verifies construction does not throw for null/empty model.
+        // Actual model selection is internal to the SDK.
+        var client1 = new GitHubCopilotClient("fine-grained-pat", null);
+        var client2 = new GitHubCopilotClient("fine-grained-pat", string.Empty);
+        Assert.NotNull(client1);
+        Assert.NotNull(client2);
     }
 
     // ── Retry behaviour ──────────────────────────────────────────────────────

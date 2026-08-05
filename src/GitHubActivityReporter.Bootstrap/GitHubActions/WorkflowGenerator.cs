@@ -60,11 +60,7 @@ public sealed class WorkflowGenerator
             ["slack_enabled"] = configuration.Publishers.Slack.Enabled,
             ["slack_secret_name"] = configuration.Publishers.Slack.SecretName,
             ["ai_summary_enabled"] = configuration.Privacy.Public.AiSummary,
-            ["ai_provider"] = configuration.Summary.Ai.Provider,
-            ["ai_secret_name"] = configuration.Summary.Ai.ApiKeySecretName,
-            ["ai_uses_github_token"] = configuration.Privacy.Public.AiSummary
-                && configuration.Summary.Ai.Provider == "github-models"
-                && configuration.Summary.Ai.ApiKeySecretName == "GITHUB_TOKEN"
+            ["ai_secret_name"] = configuration.Summary.Ai.ApiKeySecretName
         };
 
         var context = new TemplateContext { StrictVariables = true };

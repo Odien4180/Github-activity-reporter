@@ -208,10 +208,13 @@ public sealed class ReportRunner
         }
 
         _privateTerms.Add(credential);
-        IAiTextClient client = ai.Provider switch
+        IAiTextClient client = ai.Provider.ToLowerInvariant() switch
         {
             "openai" => new OpenAiResponsesClient(credential, ai.Model, maxRetries: ai.MaxRetries),
-            "github-models" => new GitHubModelsClient(credential, ai.Model, maxRetries: ai.MaxRetries),
+            "github-copilot" => new GitHubCopilotClient(credential, ai.Model),
+            "github-models" => throw new InvalidOperationException(
+                "The 'github-models' provider is no longer supported. " +
+                "Change summary.ai.provider to 'github-copilot'."),
             _ => throw new InvalidOperationException($"Unsupported AI summary provider '{ai.Provider}'.")
         };
 
