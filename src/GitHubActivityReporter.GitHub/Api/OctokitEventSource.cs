@@ -265,15 +265,16 @@ internal sealed class OctokitEventSource : IGitHubEventSource
             return null;
         }
 
-        private static string BuildApiFailureDiagnostic(string feedLabel, ApiException exception)
-        {
-            var status = exception.StatusCode is null ? "unknown" : ((int)exception.StatusCode).ToString();
-            var apiMessage = string.IsNullOrWhiteSpace(exception.ApiError?.Message)
-                ? exception.Message
-                : exception.ApiError.Message;
+    }
 
-            return $"{feedLabel} status={status}, error={apiMessage}";
-        }
+    private static string BuildApiFailureDiagnostic(string feedLabel, ApiException exception)
+    {
+        var status = ((int)exception.StatusCode).ToString();
+        var apiMessage = string.IsNullOrWhiteSpace(exception.ApiError?.Message)
+            ? exception.Message
+            : exception.ApiError.Message;
+
+        return $"{feedLabel} status={status}, error={apiMessage}";
     }
 
     private static string? FirstLine(string? message)

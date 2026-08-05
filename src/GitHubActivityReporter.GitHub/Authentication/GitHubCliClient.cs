@@ -142,20 +142,23 @@ public sealed class GitHubCliClient : IGitHubAuthenticationProbe
         diagnostics.Add($"gh auth status exit code: {status.ExitCode}.");
         if (!string.IsNullOrWhiteSpace(status.StandardError))
         {
-            diagnostics.Add($"gh auth status stderr: {status.StandardError}");
+            diagnostics.Add($"gh auth status stderr: {status.StandardError}.");
         }
 
         if (!string.IsNullOrWhiteSpace(status.StandardOutput))
         {
-            diagnostics.Add($"gh auth status stdout: {status.StandardOutput}");
+            diagnostics.Add($"gh auth status stdout: {status.StandardOutput}.");
         }
 
         return diagnostics;
     }
 
     private IReadOnlyList<string> BuildCandidateProbeDiagnostics(string? preferredVariable)
-        => _tokenProvider.GetCandidateVariableNames(preferredVariable)
-            .Select(name => $"{name}={(string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(name)) ? "missing" : "set")}")
-            .Prepend("Credential probe order: " + string.Join(", ", _tokenProvider.GetCandidateVariableNames(preferredVariable)))
+    {
+        var candidateNames = _tokenProvider.GetCandidateVariableNames(preferredVariable);
+        return candidateNames
+            .Select(name => $"{name}={(_tokenProvider.HasTokenInVariable(name) ? "set" : "missing")}")
+            .Prepend("Credential probe order: " + string.Join(", ", candidateNames))
             .ToArray();
+    }
 }

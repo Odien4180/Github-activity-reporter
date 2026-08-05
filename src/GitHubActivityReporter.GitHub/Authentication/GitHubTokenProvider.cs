@@ -44,6 +44,9 @@ public sealed class GitHubTokenProvider
     public IReadOnlyList<string> GetCandidateVariableNames(string? preferredVariable = null)
         => EnumerateCandidateNames(preferredVariable).ToArray();
 
+    public bool HasTokenInVariable(string name)
+        => !string.IsNullOrWhiteSpace(_environmentReader(name));
+
     private static IEnumerable<string> EnumerateCandidateNames(string? preferredVariable)
     {
         var candidates = new List<string>();
