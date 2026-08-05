@@ -5,8 +5,8 @@ name: Update GitHub activity report
 on:
   workflow_dispatch:
   schedule:
-    # daily at 09:00 Asia/Seoul (cron: 0 0 * * * UTC)
-    - cron: "0 0 * * *"
+    # daily at 07:15 Asia/Seoul (cron: 15 22 * * * UTC)
+    - cron: "15 22 * * *"
 
 permissions:
   contents: read
