@@ -1359,7 +1359,7 @@ MVP에서는 Fine-grained Personal Access Token을 사용한다.
 기본 Secret 이름:
 
 ```text
-GIT_ACCESS_TOKEN
+ACTIVITY_REPORTER_GITHUB_TOKEN
 ```
 
 필요 권한은 최소 범위로 제한한다.
@@ -1388,7 +1388,7 @@ CLI는 토큰 값을 직접 파일에 기록하지 않는다.
 Secret 등록은 다음 방식으로 안내하거나 자동화할 수 있다.
 
 ```bash
-gh secret set GIT_ACCESS_TOKEN
+gh secret set ACTIVITY_REPORTER_GITHUB_TOKEN
 ```
 
 이메일과 Slack용 Secret도 설정 파일에는 Secret 이름만 기록한다.

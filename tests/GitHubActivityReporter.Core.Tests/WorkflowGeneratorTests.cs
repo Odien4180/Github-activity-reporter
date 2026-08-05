@@ -59,13 +59,13 @@ public sealed class WorkflowGeneratorTests
         configuration.Privacy.Public.AiSummary = true;
         configuration.Summary.Ai.Provider = "github-copilot";
         configuration.Summary.Ai.Model = "auto";
-        configuration.Summary.Ai.ApiKeySecretName = "GIT_ACCESS_TOKEN";
+        configuration.Summary.Ai.ApiKeySecretName = "ACTIVITY_REPORTER_GITHUB_TOKEN";
 
         var workflow = new WorkflowGenerator().Generate(configuration);
 
         Assert.DoesNotContain("models: read", workflow, StringComparison.Ordinal);
         Assert.DoesNotContain("COPILOT_GITHUB_TOKEN", workflow, StringComparison.Ordinal);
-        Assert.Contains("GIT_ACCESS_TOKEN: ${{ secrets.GIT_ACCESS_TOKEN }}", workflow, StringComparison.Ordinal);
+        Assert.Contains("ACTIVITY_REPORTER_GITHUB_TOKEN: ${{ secrets.ACTIVITY_REPORTER_GITHUB_TOKEN }}", workflow, StringComparison.Ordinal);
         Assert.Contains("EMAIL_CREDENTIALS: ${{ secrets.EMAIL_CREDENTIALS }}", workflow, StringComparison.Ordinal);
         Assert.Contains("SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}", workflow, StringComparison.Ordinal);
     }
@@ -77,7 +77,7 @@ public sealed class WorkflowGeneratorTests
         configuration.Privacy.Public.AiSummary = true;
         configuration.Summary.Ai.Provider = "github-copilot";
         configuration.Summary.Ai.Model = "auto";
-        configuration.Summary.Ai.ApiKeySecretName = "GIT_ACCESS_TOKEN";
+        configuration.Summary.Ai.ApiKeySecretName = "ACTIVITY_REPORTER_GITHUB_TOKEN";
 
         var workflow = new WorkflowGenerator().Generate(configuration);
 

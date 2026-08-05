@@ -75,7 +75,7 @@ summary:
   ai:
     provider: github-copilot
     model: auto
-    api_key_secret_name: GIT_ACCESS_TOKEN
+    api_key_secret_name: ACTIVITY_REPORTER_GITHUB_TOKEN
     include_public_commit_messages: true
     max_input_events: 50
     max_input_characters: 10000
