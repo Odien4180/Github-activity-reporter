@@ -9,6 +9,7 @@ public abstract class RetryingJsonClient
 {
     private readonly HttpClient _httpClient;
     private readonly int _maxRetries;
+    private static readonly Random _jitter = Random.Shared;
 
     protected RetryingJsonClient(HttpClient? httpClient, int maxRetries)
     {
@@ -27,6 +28,8 @@ public abstract class RetryingJsonClient
 
         for (var attempt = 0; ; attempt++)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             using var request = new HttpRequestMessage(HttpMethod.Post, endpoint)
             {
                 Content = new StringContent(json, Encoding.UTF8, "application/json")
@@ -49,16 +52,48 @@ public abstract class RetryingJsonClient
 
             if (attempt >= _maxRetries || !IsTransient(response.StatusCode))
             {
+                // Read a short truncated body for diagnostics — no secrets expected in error bodies,
+                // but we cap at 512 chars to avoid bloated logs.
+                var bodySnippet = await ReadBodySnippetAsync(response.Content, cancellationToken).ConfigureAwait(false);
+                var detail = string.IsNullOrWhiteSpace(bodySnippet)
+                    ? string.Empty
+                    : $" Response: {bodySnippet}";
+
                 throw new HttpRequestException(
-                    $"AI provider returned HTTP {(int)response.StatusCode}.",
+                    $"AI provider {endpoint.Host}{endpoint.AbsolutePath} returned HTTP {(int)response.StatusCode}.{detail}",
                     inner: null,
                     response.StatusCode);
             }
 
-            var delay = response.Headers.RetryAfter?.Delta
-                        ?? TimeSpan.FromMilliseconds(250 * Math.Pow(2, attempt));
-            await Task.Delay(delay > TimeSpan.FromSeconds(5) ? TimeSpan.FromSeconds(5) : delay, cancellationToken)
-                .ConfigureAwait(false);
+            // Exponential backoff with full jitter, capped at 30 s, respecting Retry-After when present.
+            var retryAfter = response.Headers.RetryAfter?.Delta;
+            var backoffBase = TimeSpan.FromMilliseconds(250 * Math.Pow(2, attempt));
+            var cap = TimeSpan.FromSeconds(30);
+            var jitterMs = _jitter.NextDouble() * Math.Min(backoffBase.TotalMilliseconds, cap.TotalMilliseconds);
+            var delay = retryAfter.HasValue
+                ? (retryAfter.Value > cap ? cap : retryAfter.Value)
+                : TimeSpan.FromMilliseconds(jitterMs);
+
+            await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private static async Task<string?> ReadBodySnippetAsync(HttpContent content, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var body = await content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+            if (string.IsNullOrWhiteSpace(body))
+            {
+                return null;
+            }
+
+            const int maxLength = 512;
+            return body.Length <= maxLength ? body : body[..maxLength] + "…";
+        }
+        catch
+        {
+            return null;
         }
     }
 

@@ -239,6 +239,200 @@ public sealed class AiSummarizerTests
         Assert.Equal(222, body.RootElement.GetProperty("max_tokens").GetInt32());
     }
 
+    // ── Retry behaviour ──────────────────────────────────────────────────────
+
+    [Theory]
+    [InlineData(408)]
+    [InlineData(429)]
+    [InlineData(500)]
+    [InlineData(502)]
+    [InlineData(503)]
+    [InlineData(504)]
+    public async Task RetryingJsonClient_retries_on_transient_status_codes(int statusCode)
+    {
+        var callCount = 0;
+        var handler = new CallCountingHandler(request =>
+        {
+            callCount++;
+            if (callCount < 3)
+            {
+                return new HttpResponseMessage((HttpStatusCode)statusCode)
+                {
+                    Content = new StringContent("retry me", Encoding.UTF8, "text/plain")
+                };
+            }
+
+            return JsonResponse(
+                """{"output":[{"type":"message","content":[{"type":"output_text","text":"{\"summaries\":[]}"}]}]}""");
+        });
+
+        var client = new OpenAiResponsesClient("key", "gpt-5.6-sol", new HttpClient(handler), maxRetries: 2);
+        // Should NOT throw — retried and succeeded on 3rd attempt
+        await client.GenerateAsync(
+            new AiTextRequest { Instructions = "inst", Input = "in", MaxOutputTokens = 100 },
+            CancellationToken.None);
+
+        Assert.Equal(3, callCount);
+    }
+
+    [Theory]
+    [InlineData(400)]
+    [InlineData(401)]
+    [InlineData(403)]
+    [InlineData(404)]
+    [InlineData(422)]
+    public async Task RetryingJsonClient_does_not_retry_non_transient_errors(int statusCode)
+    {
+        var callCount = 0;
+        var handler = new CallCountingHandler(_ =>
+        {
+            callCount++;
+            return new HttpResponseMessage((HttpStatusCode)statusCode)
+            {
+                Content = new StringContent("bad request", Encoding.UTF8, "text/plain")
+            };
+        });
+
+        var client = new OpenAiResponsesClient("key", "gpt-5.6-sol", new HttpClient(handler), maxRetries: 3);
+        var ex = await Assert.ThrowsAsync<HttpRequestException>(() =>
+            client.GenerateAsync(
+                new AiTextRequest { Instructions = "inst", Input = "in", MaxOutputTokens = 100 },
+                CancellationToken.None));
+
+        Assert.Equal(1, callCount);
+        Assert.Equal((HttpStatusCode)statusCode, ex.StatusCode);
+    }
+
+    [Fact]
+    public async Task RetryingJsonClient_includes_status_code_and_body_snippet_in_exception_message()
+    {
+        var handler = new CallCountingHandler(_ => new HttpResponseMessage(HttpStatusCode.BadRequest)
+        {
+            Content = new StringContent("invalid_api_key", Encoding.UTF8, "text/plain")
+        });
+
+        var client = new OpenAiResponsesClient("key", "gpt-5.6-sol", new HttpClient(handler), maxRetries: 0);
+        var ex = await Assert.ThrowsAsync<HttpRequestException>(() =>
+            client.GenerateAsync(
+                new AiTextRequest { Instructions = "inst", Input = "in", MaxOutputTokens = 100 },
+                CancellationToken.None));
+
+        Assert.Contains("400", ex.Message);
+        Assert.Contains("invalid_api_key", ex.Message);
+    }
+
+    // ── Fallback flag propagation ─────────────────────────────────────────────
+
+    [Fact]
+    public async Task Fallback_result_carries_FallbackUsed_true_and_non_null_reason()
+    {
+        var primary = Substitute.For<GitHubActivityReporter.Core.Abstractions.IPublicActivitySummarizer>();
+        primary.SummarizeAsync(Arg.Any<IReadOnlyList<PublicActivityEvent>>(), Arg.Any<CancellationToken>())
+            .Returns<GitHubActivityReporter.Core.Models.PublicActivitySummary>(_ =>
+                throw new InvalidOperationException("boom"));
+        var fallback = new FallbackPublicActivitySummarizer(
+            primary,
+            new RuleBasedPublicActivitySummarizer(new SummarySettings()),
+            timeout: TimeSpan.FromSeconds(5));
+
+        var result = await fallback.SummarizeAsync(PublicEvents(), CancellationToken.None);
+
+        Assert.True(result.FallbackUsed);
+        Assert.False(string.IsNullOrWhiteSpace(result.FallbackReason));
+    }
+
+    [Fact]
+    public async Task Successful_primary_result_has_FallbackUsed_false()
+    {
+        var client = Substitute.For<IAiTextClient>();
+        client.GenerateAsync(Arg.Any<AiTextRequest>(), Arg.Any<CancellationToken>())
+            .Returns(ValidResponse("summary text"));
+        var primary = new AiPublicActivitySummarizer(client, new SummarySettings(), new PublicPrivacySettings());
+        var fallback = new FallbackPublicActivitySummarizer(
+            primary,
+            new RuleBasedPublicActivitySummarizer(new SummarySettings()),
+            timeout: TimeSpan.FromSeconds(5));
+
+        var result = await fallback.SummarizeAsync(PublicEvents(), CancellationToken.None);
+
+        Assert.False(result.FallbackUsed);
+        Assert.Null(result.FallbackReason);
+    }
+
+    [Fact]
+    public async Task HttpRequestException_fallback_reason_contains_status_code()
+    {
+        var primary = Substitute.For<GitHubActivityReporter.Core.Abstractions.IPublicActivitySummarizer>();
+        primary.SummarizeAsync(Arg.Any<IReadOnlyList<PublicActivityEvent>>(), Arg.Any<CancellationToken>())
+            .Returns<GitHubActivityReporter.Core.Models.PublicActivitySummary>(_ =>
+                throw new HttpRequestException("AI provider returned HTTP 503.", null, HttpStatusCode.ServiceUnavailable));
+        var fallback = new FallbackPublicActivitySummarizer(
+            primary,
+            new RuleBasedPublicActivitySummarizer(new SummarySettings()),
+            timeout: TimeSpan.FromSeconds(5));
+
+        var result = await fallback.SummarizeAsync(PublicEvents(), CancellationToken.None);
+
+        Assert.True(result.FallbackUsed);
+        Assert.Contains("503", result.FallbackReason);
+    }
+
+    [Fact]
+    public async Task Timeout_fallback_reason_contains_timeout_seconds()
+    {
+        var primary = Substitute.For<GitHubActivityReporter.Core.Abstractions.IPublicActivitySummarizer>();
+        primary.SummarizeAsync(Arg.Any<IReadOnlyList<PublicActivityEvent>>(), Arg.Any<CancellationToken>())
+            .Returns<GitHubActivityReporter.Core.Models.PublicActivitySummary>(async callInfo =>
+            {
+                await Task.Delay(TimeSpan.FromSeconds(10), callInfo.ArgAt<CancellationToken>(1));
+                return new GitHubActivityReporter.Core.Models.PublicActivitySummary
+                {
+                    Repositories = Array.Empty<GitHubActivityReporter.Core.Models.PublicRepositoryActivity>()
+                };
+            });
+        var fallback = new FallbackPublicActivitySummarizer(
+            primary,
+            new RuleBasedPublicActivitySummarizer(new SummarySettings()),
+            timeout: TimeSpan.FromMilliseconds(100));
+
+        var result = await fallback.SummarizeAsync(PublicEvents(), CancellationToken.None);
+
+        Assert.True(result.FallbackUsed);
+        Assert.Contains("timeout", result.FallbackReason, StringComparison.OrdinalIgnoreCase);
+    }
+
+    // ── Secret safety ─────────────────────────────────────────────────────────
+
+    [Theory]
+    [InlineData("******", "******")]
+    [InlineData("token: ABCDEFGHIJKLMNOPQRSTUVWXYZ1234ABCDEFGHIJ", "token: [REDACTED]")]
+    [InlineData("normal short message", "normal short message")]
+    public void SanitizeMessage_redacts_token_like_sequences(string input, string expected)
+    {
+        var result = FallbackPublicActivitySummarizer.SanitizeMessage(input);
+        Assert.Equal(expected, result);
+    }
+
+    [Fact]
+    public async Task Fallback_log_warning_does_not_include_raw_api_key()
+    {
+        const string fakeKey = "sk-ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890ABCDEF";
+        var primary = Substitute.For<GitHubActivityReporter.Core.Abstractions.IPublicActivitySummarizer>();
+        primary.SummarizeAsync(Arg.Any<IReadOnlyList<PublicActivityEvent>>(), Arg.Any<CancellationToken>())
+            .Returns<GitHubActivityReporter.Core.Models.PublicActivitySummary>(_ =>
+                throw new HttpRequestException($"Unauthorized: key={fakeKey}", null, HttpStatusCode.Unauthorized));
+        var log = new GitHubActivityReporter.Core.Abstractions.InMemoryReporterLog();
+        var fallback = new FallbackPublicActivitySummarizer(
+            primary,
+            new RuleBasedPublicActivitySummarizer(new SummarySettings()),
+            log,
+            timeout: TimeSpan.FromSeconds(5));
+
+        await fallback.SummarizeAsync(PublicEvents(), CancellationToken.None);
+
+        Assert.DoesNotContain(log.Lines, line => line.Contains(fakeKey, StringComparison.Ordinal));
+    }
+
     private static IReadOnlyList<PublicActivityEvent> PublicEvents() =>
     [
         new PublicActivityEvent
@@ -309,5 +503,13 @@ public sealed class AiSummarizerTests
                 : await request.Content.ReadAsStringAsync(cancellationToken);
             return responseFactory(request);
         }
+    }
+
+    private sealed class CallCountingHandler(Func<HttpRequestMessage, HttpResponseMessage> responseFactory) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken)
+            => Task.FromResult(responseFactory(request));
     }
 }

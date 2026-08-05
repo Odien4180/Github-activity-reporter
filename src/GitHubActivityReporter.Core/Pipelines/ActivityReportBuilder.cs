@@ -58,6 +58,8 @@ public sealed class ActivityReportBuilder
             GitHubUserName = context.GitHubUserName,
             PublicActivities = publicSummary.Repositories,
             PublicNarrative = publicSummary.Narrative,
+            SummarizerFallbackUsed = publicSummary.FallbackUsed,
+            SummarizerFallbackReason = publicSummary.FallbackReason,
             PrivateMetrics = privateMetrics
         };
     }

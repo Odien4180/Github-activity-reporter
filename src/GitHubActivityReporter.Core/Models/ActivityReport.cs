@@ -15,6 +15,12 @@ public sealed record ActivityReport
 
     public PublicActivityNarrative PublicNarrative { get; init; } = new();
 
+    /// <summary>True when the rule-based fallback was used instead of the primary (AI) summarizer.</summary>
+    public bool SummarizerFallbackUsed { get; init; }
+
+    /// <summary>Compact reason the fallback was used, or null when the primary succeeded.</summary>
+    public string? SummarizerFallbackReason { get; init; }
+
     public required PrivateActivityMetrics PrivateMetrics { get; init; }
 
     public PublicActivityMetrics PublicTotals => new()

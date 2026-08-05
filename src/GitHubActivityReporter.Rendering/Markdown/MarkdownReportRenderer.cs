@@ -116,6 +116,17 @@ public sealed class MarkdownReportRenderer : IReportRenderer
 
         AppendPublicNarrative(builder, report.PublicNarrative, korean);
 
+        if (report.SummarizerFallbackUsed)
+        {
+            var reason = string.IsNullOrWhiteSpace(report.SummarizerFallbackReason)
+                ? string.Empty
+                : $" ({report.SummarizerFallbackReason})";
+            builder.AppendLine(korean
+                ? $"> ⚠️ AI 요약을 사용할 수 없어 규칙 기반 요약으로 대체했습니다{reason}."
+                : $"> ⚠️ AI summary unavailable — rule-based fallback used{reason}.");
+            builder.AppendLine();
+        }
+
         if (report.PublicActivities.Count == 0)
         {
             builder.AppendLine(korean
