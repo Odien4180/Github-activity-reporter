@@ -266,7 +266,7 @@ public sealed class AiSummarySettings
     /// Allows public commit subjects to be used as AI-only evidence. They are never
     /// emitted as raw report events when privacy.public.expose_commit_messages is false.
     /// </summary>
-    public bool IncludePublicCommitMessages { get; set; }
+    public bool IncludePublicCommitMessages { get; set; } = true;
 
     public int MaxInputEvents { get; set; } = 100;
 

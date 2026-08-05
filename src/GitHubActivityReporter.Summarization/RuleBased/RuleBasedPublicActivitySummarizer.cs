@@ -66,14 +66,13 @@ public sealed class RuleBasedPublicActivitySummarizer : IPublicActivitySummarize
             Topics = all.SelectMany(e => e.Topics).Distinct(StringComparer.OrdinalIgnoreCase).ToArray(),
             Events = displayed,
             Metrics = metrics,
-            Summary = BuildSummary(notable, metrics, all.Select(e => e.Description).FirstOrDefault(d => !string.IsNullOrWhiteSpace(d)))
+            Summary = BuildSummary(notable, metrics)
         };
     }
 
     private string BuildSummary(
         IReadOnlyList<PublicActivityEvent> notable,
-        PublicActivityMetrics metrics,
-        string? repositoryDescription)
+        PublicActivityMetrics metrics)
     {
         var korean = string.Equals(_settings.Language, "ko", StringComparison.OrdinalIgnoreCase);
         if (_settings.UsePublicChangeDetails)
@@ -101,13 +100,6 @@ public sealed class RuleBasedPublicActivitySummarizer : IPublicActivitySummarize
 
         if (metrics.CommitCount > 0)
         {
-            if (!string.IsNullOrWhiteSpace(repositoryDescription))
-            {
-                return korean
-                    ? $"{repositoryDescription.Trim()} 방향으로 구현과 정비를 이어갔습니다. (커밋 {metrics.CommitCount.ToString(CultureInfo.InvariantCulture)}건)"
-                    : $"Kept implementation moving in line with {repositoryDescription.Trim()}. ({metrics.CommitCount.ToString(CultureInfo.InvariantCulture)} commits)";
-            }
-
             return korean
                 ? $"커밋 {metrics.CommitCount.ToString(CultureInfo.InvariantCulture)}건으로 공개 변경 사항을 정리했습니다."
                 : $"Wrapped up the public-facing changes in {metrics.CommitCount.ToString(CultureInfo.InvariantCulture)} commit(s).";

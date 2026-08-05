@@ -58,3 +58,21 @@ internal interface IGitHubEventSource
         string fullName,
         CancellationToken cancellationToken);
 }
+
+/// <summary>
+/// Result of a git compare call for a push event.
+/// Carries commit count and diff statistics so the mapper can enrich events without
+/// making redundant API calls.
+/// </summary>
+internal sealed record PushCompareResult
+{
+    public int? CommitCount { get; init; }
+
+    public IReadOnlyList<string> ChangedPaths { get; init; } = Array.Empty<string>();
+
+    public int? Additions { get; init; }
+
+    public int? Deletions { get; init; }
+
+    public int? ChangedFiles { get; init; }
+}

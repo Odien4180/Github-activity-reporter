@@ -9,7 +9,7 @@ namespace GitHubActivityReporter.GitHub.Tests;
 public sealed class OctokitEventSourceTests
 {
     [Fact]
-    public async Task TryGetComparedCommitCountAsync_ReturnsCompareTotal()
+    public async Task TryGetCompareResultAsync_ReturnsCompareTotal()
     {
         var client = Substitute.For<IGitHubClient>();
         var repositories = Substitute.For<IRepositoriesClient>();
@@ -37,13 +37,14 @@ public sealed class OctokitEventSourceTests
 
         var source = new OctokitEventSource(client, apiConnection: Substitute.For<IApiConnection>());
 
-        var count = await source.TryGetComparedCommitCountAsync(
+        var result = await source.TryGetCompareResultAsync(
             "owner/repository",
             "before",
             "head",
             CancellationToken.None);
 
-        Assert.Equal(10, count);
+        Assert.NotNull(result);
+        Assert.Equal(10, result.CommitCount);
     }
 
     [Theory]
@@ -51,7 +52,7 @@ public sealed class OctokitEventSourceTests
     [InlineData("invalid", "before", "head")]
     [InlineData("owner/repository", null, "head")]
     [InlineData("owner/repository", "before", null)]
-    public async Task TryGetComparedCommitCountAsync_InvalidCoordinates_ReturnsNull(
+    public async Task TryGetCompareResultAsync_InvalidCoordinates_ReturnsNull(
         string? repository,
         string? before,
         string? head)
@@ -60,13 +61,13 @@ public sealed class OctokitEventSourceTests
             Substitute.For<IGitHubClient>(),
             apiConnection: Substitute.For<IApiConnection>());
 
-        var count = await source.TryGetComparedCommitCountAsync(
+        var result = await source.TryGetCompareResultAsync(
             repository,
             before,
             head,
             CancellationToken.None);
 
-        Assert.Null(count);
+        Assert.Null(result);
     }
 
     [Fact]
