@@ -5,6 +5,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="GitHubActivityReporter.Core.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\GitHubActivityReporter.Core\GitHubActivityReporter.Core.csproj" />
   </ItemGroup>
 
