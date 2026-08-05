@@ -14,7 +14,7 @@ internal sealed class OctokitEventSource : IGitHubEventSource
     private readonly int _maxPages;
     private readonly IReporterLog _log;
     private readonly Dictionary<string, GitHubRepositoryInfo?> _repositoryCache = new(StringComparer.OrdinalIgnoreCase);
-    private readonly Dictionary<string, int?> _pushCommitCountCache = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, PushCompareResult?> _pushCompareCache = new(StringComparer.Ordinal);
 
     public OctokitEventSource(
         IGitHubClient client,
@@ -120,12 +120,12 @@ internal sealed class OctokitEventSource : IGitHubEventSource
 
             foreach (var activity in activities)
             {
-                int? comparedCommitCount = null;
+                PushCompareResult? compareResult = null;
                 if (activity.CreatedAt >= since
                     && activity.Type == "PushEvent"
                     && activity.Payload is PushEventPayload pushPayload)
                 {
-                    comparedCommitCount = await TryGetComparedCommitCountAsync(
+                    compareResult = await TryGetCompareResultAsync(
                             activity.Repo?.Name,
                             pushPayload.Before,
                             pushPayload.Head,
@@ -133,7 +133,7 @@ internal sealed class OctokitEventSource : IGitHubEventSource
                         .ConfigureAwait(false);
                 }
 
-                results.AddRange(OctokitActivityMapper.Map(activity, comparedCommitCount));
+                results.AddRange(OctokitActivityMapper.Map(activity, compareResult));
             }
 
             // The feed is ordered newest first, so we can stop as soon as we passed the window.
@@ -185,7 +185,7 @@ internal sealed class OctokitEventSource : IGitHubEventSource
         }
     }
 
-    internal async Task<int?> TryGetComparedCommitCountAsync(
+    internal async Task<PushCompareResult?> TryGetCompareResultAsync(
         string? repositoryFullName,
         string? before,
         string? head,
@@ -207,7 +207,7 @@ internal sealed class OctokitEventSource : IGitHubEventSource
         }
 
         var cacheKey = $"{repositoryFullName}\n{before}\n{head}";
-        if (_pushCommitCountCache.TryGetValue(cacheKey, out var cached))
+        if (_pushCompareCache.TryGetValue(cacheKey, out var cached))
         {
             return cached;
         }
@@ -222,18 +222,35 @@ internal sealed class OctokitEventSource : IGitHubEventSource
                 .ConfigureAwait(false);
 
             cancellationToken.ThrowIfCancellationRequested();
+
             int? count = comparison.TotalCommits > 0 ? comparison.TotalCommits : null;
-            _pushCommitCountCache[cacheKey] = count;
-            return count;
+            var files = comparison.Files?
+                .Where(f => !string.IsNullOrWhiteSpace(f.Filename))
+                .Select(f => f.Filename)
+                .ToArray() ?? Array.Empty<string>();
+            int? additions = comparison.Files?.Sum(f => f.Additions) is int a and > 0 ? a : null;
+            int? deletions = comparison.Files?.Sum(f => f.Deletions) is int d and > 0 ? d : null;
+
+            var result = new PushCompareResult
+            {
+                CommitCount = count,
+                ChangedPaths = files,
+                Additions = additions,
+                Deletions = deletions,
+                ChangedFiles = files.Length > 0 ? files.Length : null
+            };
+
+            _pushCompareCache[cacheKey] = result;
+            return result;
         }
         catch (NotFoundException)
         {
-            _pushCommitCountCache[cacheKey] = null;
+            _pushCompareCache[cacheKey] = null;
             return null;
         }
         catch (ApiException)
         {
-            _pushCommitCountCache[cacheKey] = null;
+            _pushCompareCache[cacheKey] = null;
             return null;
         }
     }

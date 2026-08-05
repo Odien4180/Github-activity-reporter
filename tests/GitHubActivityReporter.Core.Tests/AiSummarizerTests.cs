@@ -150,7 +150,7 @@ public sealed class AiSummarizerTests
     }
 
     [Fact]
-    public async Task Rule_based_summary_uses_public_repository_description_for_commit_only_activity()
+    public async Task Rule_based_summary_uses_commit_count_fallback_for_commit_only_activity()
     {
         var events = PublicEvents().Where(item => item.Type == ActivityType.Commit).ToArray();
 
@@ -158,9 +158,9 @@ public sealed class AiSummarizerTests
             .SummarizeAsync(events, CancellationToken.None);
 
         var repository = Assert.Single(result.Repositories);
-        Assert.Contains("Generates readable GitHub activity reports", repository.Summary, StringComparison.Ordinal);
-        Assert.Contains("구현과 정비", repository.Summary, StringComparison.Ordinal);
-        Assert.NotEqual("커밋 1건을 반영했습니다.", repository.Summary);
+        Assert.Contains("커밋", repository.Summary, StringComparison.Ordinal);
+        Assert.DoesNotContain("Generates readable GitHub activity reports", repository.Summary, StringComparison.Ordinal);
+        Assert.DoesNotContain("구현과 정비", repository.Summary, StringComparison.Ordinal);
     }
 
     [Fact]

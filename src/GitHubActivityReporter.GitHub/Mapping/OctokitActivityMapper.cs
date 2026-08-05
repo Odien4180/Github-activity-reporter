@@ -7,7 +7,7 @@ namespace GitHubActivityReporter.GitHub.Mapping;
 /// <summary>Maps Octokit activity feed entries to normalised raw events.</summary>
 internal static class OctokitActivityMapper
 {
-    public static IEnumerable<GitHubRawEvent> Map(Activity activity, int? comparedCommitCount = null)
+    public static IEnumerable<GitHubRawEvent> Map(Activity activity, PushCompareResult? compareResult = null)
     {
         ArgumentNullException.ThrowIfNull(activity);
 
@@ -30,7 +30,7 @@ internal static class OctokitActivityMapper
                              repositoryName!,
                              isPrivate,
                              occurredAt,
-                             comparedCommitCount))
+                             compareResult))
                 {
                     yield return mapped;
                 }
@@ -124,11 +124,15 @@ internal static class OctokitActivityMapper
         string repositoryName,
         bool isPrivate,
         DateTimeOffset occurredAt,
-        int? comparedCommitCount)
+        PushCompareResult? compareResult)
     {
         var payload = activity.Payload as PushEventPayload;
         var commits = payload?.Commits?.ToArray() ?? Array.Empty<Commit>();
-        var count = ResolvePushEventCount(commits.Length, (int)(payload?.Size ?? 0), comparedCommitCount);
+        var count = ResolvePushEventCount(commits.Length, (int)(payload?.Size ?? 0), compareResult?.CommitCount);
+
+        // Diff statistics apply to the whole push, not individual commits. Attach them to
+        // the first event so the AI summarizer gets them as context.
+        var attachDiff = !isPrivate && compareResult is not null;
 
         for (var index = 0; index < count; index++)
         {
@@ -154,7 +158,13 @@ internal static class OctokitActivityMapper
                 IsPrivateRepository = isPrivate,
                 OccurredAt = occurredAt,
                 Title = title,
-                Url = url
+                Url = url,
+                // Diff context is only attached to the first commit event so counts are not
+                // inflated when there are multiple commits in a single push.
+                ChangedPaths = attachDiff && index == 0 ? compareResult!.ChangedPaths : Array.Empty<string>(),
+                Additions = attachDiff && index == 0 ? compareResult!.Additions : null,
+                Deletions = attachDiff && index == 0 ? compareResult!.Deletions : null,
+                ChangedFiles = attachDiff && index == 0 ? compareResult!.ChangedFiles : null
             };
         }
     }
