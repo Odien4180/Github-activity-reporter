@@ -41,8 +41,8 @@ privacy:
     expose_issue_titles: true
     expose_release_names: true
     expose_languages: true
-    expose_topics: true
-    expose_commit_messages: true
+    expose_topics: false
+    expose_commit_messages: false
     ai_summary: true
   private:
     mode: aggregate-only
