@@ -68,6 +68,8 @@ internal sealed record PushCompareResult
 {
     public int? CommitCount { get; init; }
 
+    public IReadOnlyList<string> CommitSubjects { get; init; } = Array.Empty<string>();
+
     public IReadOnlyList<string> ChangedPaths { get; init; } = Array.Empty<string>();
 
     public int? Additions { get; init; }

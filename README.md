@@ -1,10 +1,11 @@
 # GitHub Activity Reporter
 
-공개 GitHub 활동과 비공개 활동의 **집계 수치**를 수집해 프로필 README, JSON, SVG 대시보드, 정적 웹사이트로 만드는 .NET CLI입니다. 비공개 저장소 이름, 조직명, 제목, 링크, 커밋 메시지 같은 식별 정보는 출력 전에 차단됩니다.
+공개 GitHub 활동에서 **어떤 작업을 했는지** 수집하고 정리해 프로필 README, JSON, SVG 대시보드, 정적 웹사이트로 만드는 .NET CLI입니다. 커밋·PR·Issue 건수는 작업 설명을 보조하는 참고 지표로만 제공합니다. 비공개 저장소 이름, 조직명, 제목, 링크, 커밋 메시지 같은 식별 정보는 출력 전에 차단됩니다.
 
 ## 주요 기능
 
-- 공개 저장소별 커밋, Pull Request, Issue, Review, Release 요약
+- 공개 저장소별 변경 파일, 커밋 주제, Pull Request, Issue, Review, Release를 바탕으로 한 작업 내용 요약
+- 기간별 핵심 작업과 저장소별 변경 목적을 우선 표시하고 활동 건수는 보조 지표로 제공
 - 비공개 활동은 저장소 수와 이벤트 수 등 집계값만 출력
 - Markdown, JSON, SVG, 정적 HTML 렌더링
 - GitHub 프로필 README의 마커 구간만 안전하게 갱신
@@ -190,7 +191,7 @@ summary:
 
 OpenAI Provider는 [Responses API](https://developers.openai.com/api/reference/resources/responses/methods/create)를 사용합니다. GitHub 자격 증명으로 실행하려면 `provider: github-models`, GitHub Models catalog의 모델 ID(예: `openai/gpt-4.1`), `api_key_secret_name: GITHUB_TOKEN`을 설정합니다. 생성 workflow는 이 경우 `models: read` 권한을 추가합니다.
 
-AI에는 설정에서 노출을 허용한 공개 제목과 공개 변경 메타데이터만 전달됩니다. 요청은 실행당 한 번으로 제한되고 입력 이벤트·문자·출력 토큰, timeout, retry 상한을 적용합니다. 응답이 실패하거나 형식 검증을 통과하지 못하면 규칙 기반 요약으로 자동 복구됩니다. 규칙 기반 요약도 공개 제목, 저장소 설명, 변경 파일 경로, diff 통계를 바탕으로 개선·정비·흐름 정리 중심 문장으로 정리합니다.
+AI에는 설정에서 노출을 허용한 공개 제목과 공개 변경 메타데이터만 전달됩니다. 요청은 실행당 한 번으로 제한되고 입력 이벤트·문자·출력 토큰, timeout, retry 상한을 적용합니다. 응답이 실패하거나 형식 검증을 통과하지 못하면 규칙 기반 요약으로 자동 복구됩니다. 규칙 기반 요약도 공개 제목, 저장소 설명, 변경 파일 경로, diff 통계를 바탕으로 실제 작업 주제를 먼저 설명하며 활동 건수는 별도의 참고 지표로만 표시합니다.
 
 더 구체적인 변경 주제 요약이 필요하면 `summary.ai.include_public_commit_messages: true`를 명시적으로 설정할 수 있습니다. 이 옵션은 공개 저장소의 커밋 제목을 AI 입력 근거로만 사용하며, `privacy.public.expose_commit_messages: false`인 동안 Markdown과 JSON에는 원문 커밋 이벤트를 출력하지 않습니다. AI 결과가 커밋 제목을 그대로 복제하면 검증에서 거부하고 규칙 기반 요약으로 fallback합니다. 정상 응답은 전체 기간 headline, 핵심 highlight 최대 5개, 저장소별 요약으로 구성됩니다.
 

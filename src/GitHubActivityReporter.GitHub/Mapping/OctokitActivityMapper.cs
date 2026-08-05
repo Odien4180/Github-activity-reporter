@@ -133,15 +133,18 @@ internal static class OctokitActivityMapper
         // Diff statistics apply to the whole push, not individual commits. Attach them to
         // the first event so the AI summarizer gets them as context.
         var attachDiff = !isPrivate && compareResult is not null;
+        var includedSubjects = commits.Select(commit => FirstLine(commit.Message)).ToArray();
 
         for (var index = 0; index < count; index++)
         {
-            string? title = null;
+            var title = ResolveCommitSubject(
+                includedSubjects,
+                compareResult?.CommitSubjects ?? Array.Empty<string>(),
+                index);
             string? url = null;
 
             if (!isPrivate && index < commits.Length)
             {
-                title = FirstLine(commits[index].Message);
                 var sha = commits[index].Sha;
                 if (!string.IsNullOrWhiteSpace(sha))
                 {
@@ -149,7 +152,6 @@ internal static class OctokitActivityMapper
                     url = $"https://github.com/{repositoryName}/commit/{sha[..Math.Min(7, sha.Length)]}";
                 }
             }
-
             yield return new GitHubRawEvent
             {
                 Id = $"{id}#{index}",
@@ -157,7 +159,7 @@ internal static class OctokitActivityMapper
                 RepositoryFullName = repositoryName,
                 IsPrivateRepository = isPrivate,
                 OccurredAt = occurredAt,
-                Title = title,
+                Title = isPrivate ? null : title,
                 Url = url,
                 // Diff context is only attached to the first commit event so counts are not
                 // inflated when there are multiple commits in a single push.
@@ -192,6 +194,21 @@ internal static class OctokitActivityMapper
         // GitHub may omit both commits and size from Events API push payloads.
         // Preserve the activity as one opaque commit instead of dropping it.
         return 1;
+    }
+
+    internal static string? ResolveCommitSubject(
+        IReadOnlyList<string?> includedSubjects,
+        IReadOnlyList<string> comparedSubjects,
+        int index)
+    {
+        if (index < includedSubjects.Count && !string.IsNullOrWhiteSpace(includedSubjects[index]))
+        {
+            return includedSubjects[index];
+        }
+
+        return index < comparedSubjects.Count && !string.IsNullOrWhiteSpace(comparedSubjects[index])
+            ? comparedSubjects[index]
+            : null;
     }
 
     private static ActivityType? ResolvePullRequestType(PullRequestEventPayload payload) => payload.Action switch

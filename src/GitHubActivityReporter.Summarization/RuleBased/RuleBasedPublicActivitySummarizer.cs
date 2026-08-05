@@ -66,18 +66,18 @@ public sealed class RuleBasedPublicActivitySummarizer : IPublicActivitySummarize
             Topics = all.SelectMany(e => e.Topics).Distinct(StringComparer.OrdinalIgnoreCase).ToArray(),
             Events = displayed,
             Metrics = metrics,
-            Summary = BuildSummary(notable, metrics)
+            Summary = BuildSummary(all, notable)
         };
     }
 
     private string BuildSummary(
-        IReadOnlyList<PublicActivityEvent> notable,
-        PublicActivityMetrics metrics)
+        IReadOnlyList<PublicActivityEvent> all,
+        IReadOnlyList<PublicActivityEvent> notable)
     {
         var korean = string.Equals(_settings.Language, "ko", StringComparison.OrdinalIgnoreCase);
         if (_settings.UsePublicChangeDetails)
         {
-            var detailSummary = BuildChangeDetailSummary(notable.Count > 0 ? notable : Array.Empty<PublicActivityEvent>(), korean);
+            var detailSummary = BuildChangeDetailSummary(all, korean);
             if (!string.IsNullOrWhiteSpace(detailSummary))
             {
                 return detailSummary!;
@@ -98,16 +98,16 @@ public sealed class RuleBasedPublicActivitySummarizer : IPublicActivitySummarize
                 : $"Refined the public delivery flow around {describedWork}.";
         }
 
-        if (metrics.CommitCount > 0)
+        if (all.Any(e => e.Type == ActivityType.Commit))
         {
             return korean
-                ? $"커밋 {metrics.CommitCount.ToString(CultureInfo.InvariantCulture)}건으로 공개 변경 사항을 정리했습니다."
-                : $"Wrapped up the public-facing changes in {metrics.CommitCount.ToString(CultureInfo.InvariantCulture)} commit(s).";
+                ? "공개 변경 내용을 구현하고 관련 흐름을 정비했습니다."
+                : "Implemented the public changes and refined the related workflow.";
         }
 
         return korean
-            ? $"총 {metrics.TotalCount.ToString(CultureInfo.InvariantCulture)}건의 공개 활동을 정리했습니다."
-            : $"Captured {metrics.TotalCount.ToString(CultureInfo.InvariantCulture)} public activity item(s).";
+            ? "공개 프로젝트의 작업 흐름을 정리했습니다."
+            : "Refined the public project's development workflow.";
     }
 
     private string? BuildChangeDetailSummary(
@@ -119,7 +119,7 @@ public sealed class RuleBasedPublicActivitySummarizer : IPublicActivitySummarize
             .Where(path => !string.IsNullOrWhiteSpace(path))
             .Take(20)
             .ToArray();
-        var theme = ClassifyTheme(paths);
+        var theme = ClassifyTheme(paths) ?? ClassifyTextTheme(events);
         if (theme is null)
         {
             return null;
@@ -187,6 +187,38 @@ public sealed class RuleBasedPublicActivitySummarizer : IPublicActivitySummarize
         return null;
     }
 
+    private static string? ClassifyTextTheme(IReadOnlyList<PublicActivityEvent> events)
+    {
+        var text = string.Join(
+            ' ',
+            events.Select(item => item.Title).Where(title => !string.IsNullOrWhiteSpace(title)));
+
+        if (ContainsAny(text, "workflow", "action", "automation", "pipeline", "deploy", "release"))
+        {
+            return "automation";
+        }
+
+        if (ContainsAny(text, "readme", "documentation", "docs", "guide"))
+        {
+            return "documentation";
+        }
+
+        if (ContainsAny(text, "config", "configuration", "setting", "setup"))
+        {
+            return "configuration";
+        }
+
+        if (ContainsAny(text, "test", "retry", "error", "reliable", "reliability", "timeout", "validation", "fix"))
+        {
+            return "reliability";
+        }
+
+        return null;
+    }
+
+    private static bool ContainsAny(string text, params string[] terms)
+        => terms.Any(term => text.Contains(term, StringComparison.OrdinalIgnoreCase));
+
     private PublicActivityNarrative BuildNarrative(IReadOnlyList<PublicRepositoryActivity> activities)
     {
         if (activities.Count == 0)
@@ -195,79 +227,20 @@ public sealed class RuleBasedPublicActivitySummarizer : IPublicActivitySummarize
         }
 
         var korean = string.Equals(_settings.Language, "ko", StringComparison.OrdinalIgnoreCase);
-        var totalCommits = activities.Sum(a => a.Metrics.CommitCount);
-        var totalPullRequests = activities.Sum(a =>
-            a.Metrics.PullRequestOpenedCount + a.Metrics.PullRequestMergedCount + a.Metrics.PullRequestClosedCount);
-        var totalIssues = activities.Sum(a => a.Metrics.IssueOpenedCount + a.Metrics.IssueClosedCount);
-        var totalReviews = activities.Sum(a => a.Metrics.ReviewSubmittedCount);
-        var totalReleases = activities.Sum(a => a.Metrics.ReleasePublishedCount);
-
-        var headline = korean
-            ? BuildKoreanHeadline(activities.Count, totalCommits, totalPullRequests, totalIssues, totalReviews, totalReleases)
-            : BuildEnglishHeadline(activities.Count, totalCommits, totalPullRequests, totalIssues, totalReviews, totalReleases);
-
         var highlights = activities
             .Take(5)
-            .Select(activity => BuildRepositoryHighlight(activity, korean))
+            .Where(activity => !string.IsNullOrWhiteSpace(activity.Summary))
+            .Select(activity => $"{activity.RepositoryName}: {activity.Summary}")
             .ToArray();
+        var primarySummary = activities
+            .Select(activity => activity.Summary)
+            .FirstOrDefault(summary => !string.IsNullOrWhiteSpace(summary));
+        var headline = primarySummary is null
+            ? null
+            : korean
+                ? $"이번 기간의 주요 작업: {primarySummary}"
+                : $"Primary work this period: {primarySummary}";
 
         return new PublicActivityNarrative { Headline = headline, Highlights = highlights };
-    }
-
-    private static string BuildKoreanHeadline(
-        int repositoryCount,
-        int commits,
-        int pullRequests,
-        int issues,
-        int reviews,
-        int releases)
-    {
-        var themes = new List<string>();
-        if (pullRequests > 0) themes.Add("변경 사항 검토와 병합");
-        if (issues > 0) themes.Add("이슈 대응");
-        if (reviews > 0) themes.Add("코드 리뷰");
-        if (releases > 0) themes.Add("릴리스");
-
-        return themes.Count > 0
-            ? $"{repositoryCount}개 공개 저장소에서 {string.Join(", ", themes)}를 중심으로 작업 흐름을 정리했습니다."
-            : $"{repositoryCount}개 공개 저장소에 {commits}개의 커밋을 반영하며 공개 작업을 이어갔습니다.";
-    }
-
-    private static string BuildEnglishHeadline(
-        int repositoryCount,
-        int commits,
-        int pullRequests,
-        int issues,
-        int reviews,
-        int releases)
-    {
-        var themes = new List<string>();
-        if (pullRequests > 0) themes.Add("pull request delivery");
-        if (issues > 0) themes.Add("issue resolution");
-        if (reviews > 0) themes.Add("code review");
-        if (releases > 0) themes.Add("releases");
-
-        return themes.Count > 0
-            ? $"Worked across {repositoryCount} public repositories with a focus on {string.Join(", ", themes)}."
-            : $"Kept public work moving across {repositoryCount} repositories with {commits} commits.";
-    }
-
-    private static string BuildRepositoryHighlight(PublicRepositoryActivity activity, bool korean)
-    {
-        var metrics = activity.Metrics;
-        var parts = new List<string>();
-        if (metrics.CommitCount > 0) parts.Add(korean ? $"커밋 {metrics.CommitCount}건" : $"{metrics.CommitCount} commits");
-        if (metrics.PullRequestMergedCount > 0) parts.Add(korean ? $"PR 병합 {metrics.PullRequestMergedCount}건" : $"{metrics.PullRequestMergedCount} merged PRs");
-        if (metrics.PullRequestOpenedCount > 0) parts.Add(korean ? $"PR 생성 {metrics.PullRequestOpenedCount}건" : $"{metrics.PullRequestOpenedCount} opened PRs");
-        if (metrics.IssueClosedCount > 0) parts.Add(korean ? $"이슈 해결 {metrics.IssueClosedCount}건" : $"{metrics.IssueClosedCount} closed issues");
-        if (metrics.ReviewSubmittedCount > 0) parts.Add(korean ? $"리뷰 {metrics.ReviewSubmittedCount}건" : $"{metrics.ReviewSubmittedCount} reviews");
-        if (metrics.ReleasePublishedCount > 0) parts.Add(korean ? $"릴리스 {metrics.ReleasePublishedCount}건" : $"{metrics.ReleasePublishedCount} releases");
-
-        var language = string.IsNullOrWhiteSpace(activity.Language)
-            ? string.Empty
-            : korean ? $" ({activity.Language})" : $" ({activity.Language})";
-        return korean
-            ? $"{activity.RepositoryName}{language}: {string.Join(", ", parts)}을 중심으로 흐름을 정리했습니다."
-            : $"{activity.RepositoryName}{language}: {string.Join(", ", parts)}.";
     }
 }
