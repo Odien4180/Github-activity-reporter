@@ -149,7 +149,25 @@ public sealed class AiPublicActivitySummarizer : IPublicActivitySummarizer
            Write in {(_summary.Language == "ko" ? "Korean" : "English")} using a {_summary.Style} style.
            Keep the headline under 200 characters and every highlight and repository summary under 300 characters.
            Keep every string on one line. Avoid generic praise, activity-log phrasing, and repeated metric-only sentences.
-           """;
+           """
+           + "\n\n" + JsonShapeInstructions;
+
+    private const string JsonShapeInstructions =
+        """
+        Respond with a single JSON object using exactly this shape and these exact property names
+        (no additional properties, no nesting under any other key such as "result" or "data"):
+        {
+          "headline": "<string, <=200 chars>",
+          "highlights": ["<string, <=300 chars>", "... up to 5 items"],
+          "summaries": [
+            { "id": "r1", "summary": "<string, <=300 chars>" },
+            { "id": "r2", "summary": "<string, <=300 chars>" }
+          ]
+        }
+        The "summaries" array must contain exactly one entry per repository id supplied in the input
+        (the input's repositories array lists the ids to use, e.g. "r1", "r2", ...), each with that
+        exact id and no other ids. Do not omit "headline", "highlights", or "summaries".
+        """;
 
     private bool CanExposeTitle(PublicActivityEvent activity)
         => activity.Type switch
@@ -173,18 +191,17 @@ public sealed class AiPublicActivitySummarizer : IPublicActivitySummarizer
         // Some models wrap the entire response under a "result" envelope.
         // Try root first, then fall back to root["result"] for headline and highlights.
         var narrativeRoot = root;
-        if (ReadSingleLine(root, "headline", 200) is null
+        if (ReadHeadline(root) is null
             && root.TryGetProperty("result", out var resultEnvelope)
             && resultEnvelope.ValueKind == JsonValueKind.Object
-            && ReadSingleLine(resultEnvelope, "headline", 200) is not null)
+            && ReadHeadline(resultEnvelope) is not null)
         {
             narrativeRoot = resultEnvelope;
         }
 
-        var headline = ReadSingleLine(narrativeRoot, "headline", 200)
+        var headline = ReadHeadline(narrativeRoot)
                        ?? throw new JsonException("AI summary response is missing a valid headline.");
-        if (!narrativeRoot.TryGetProperty("highlights", out var highlightsElement)
-            || highlightsElement.ValueKind != JsonValueKind.Array)
+        if (!TryGetHighlightsElement(narrativeRoot, out var highlightsElement))
         {
             throw new JsonException("AI summary response is missing the highlights array.");
         }
@@ -246,6 +263,42 @@ public sealed class AiPublicActivitySummarizer : IPublicActivitySummarizer
             Narrative = new PublicActivityNarrative { Headline = headline, Highlights = highlights },
             RepositorySummaries = accepted
         };
+    }
+
+    // Free-form (non-schema-enforced) providers occasionally deviate from the exact
+    // requested property name for the headline; accept a small set of common aliases.
+    private static readonly string[] HeadlinePropertyNames = { "headline", "title", "summary_headline" };
+
+    // Likewise for the highlights array.
+    private static readonly string[] HighlightsPropertyNames =
+        { "highlights", "key_points", "bullets", "bullet_points" };
+
+    private static string? ReadHeadline(JsonElement root)
+    {
+        foreach (var propertyName in HeadlinePropertyNames)
+        {
+            var value = ReadSingleLine(root, propertyName, 200);
+            if (value is not null)
+            {
+                return value;
+            }
+        }
+
+        return null;
+    }
+
+    private static bool TryGetHighlightsElement(JsonElement root, out JsonElement highlights)
+    {
+        foreach (var propertyName in HighlightsPropertyNames)
+        {
+            if (root.TryGetProperty(propertyName, out highlights) && highlights.ValueKind == JsonValueKind.Array)
+            {
+                return true;
+            }
+        }
+
+        highlights = default;
+        return false;
     }
 
     private static string? ReadSingleLine(JsonElement root, string propertyName, int maxLength)
