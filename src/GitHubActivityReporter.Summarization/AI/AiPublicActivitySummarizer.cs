@@ -191,8 +191,8 @@ public sealed class AiPublicActivitySummarizer : IPublicActivitySummarizer
 
         var highlights = highlightsElement
             .EnumerateArray()
-            .Select(item => item.ValueKind == JsonValueKind.String ? CleanSingleLine(item.GetString()) : null)
-            .Where(item => !string.IsNullOrWhiteSpace(item) && item.Length <= 300)
+            .Select(item => item.ValueKind == JsonValueKind.String ? Truncate(CleanSingleLine(item.GetString()), 300) : null)
+            .Where(item => !string.IsNullOrWhiteSpace(item))
             .Cast<string>()
             .Take(5)
             .ToArray();
@@ -216,11 +216,10 @@ public sealed class AiPublicActivitySummarizer : IPublicActivitySummarizer
             }
 
             var id = idElement.GetString();
-            var summary = CleanSingleLine(summaryElement.GetString());
+            var summary = Truncate(CleanSingleLine(summaryElement.GetString()), 300);
             if (id is null
                 || !TryParseRepositoryId(id, repositoryCount)
-                || string.IsNullOrWhiteSpace(summary)
-                || summary.Length > 300)
+                || string.IsNullOrWhiteSpace(summary))
             {
                 continue;
             }
@@ -256,8 +255,8 @@ public sealed class AiPublicActivitySummarizer : IPublicActivitySummarizer
             return null;
         }
 
-        var value = CleanSingleLine(element.GetString());
-        return !string.IsNullOrWhiteSpace(value) && value.Length <= maxLength ? value : null;
+        var value = Truncate(CleanSingleLine(element.GetString()), maxLength);
+        return !string.IsNullOrWhiteSpace(value) ? value : null;
     }
 
     private static string? CleanSingleLine(string? value)
