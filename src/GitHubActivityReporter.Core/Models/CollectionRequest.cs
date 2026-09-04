@@ -28,6 +28,34 @@ public sealed record CollectionRequest
     public bool Contains(DateTimeOffset moment)
         => moment >= PeriodStart && moment <= PeriodEnd;
 
+    /// <summary>
+    /// When true, events that occurred before <see cref="PeriodStart"/> but within the same
+    /// UTC calendar day are still collected and clamped to the period start. The GitHub
+    /// events feed only exposes up to 300 events, so a strict rolling window permanently
+    /// drops activity that happened earlier on the day a daily report runs.
+    /// </summary>
+    public bool IncludeSameUtcDayBeforeStart { get; init; }
+
+    /// <summary>Returns the event unchanged when inside the period, clamps it to
+    /// <see cref="PeriodStart"/> when it belongs to the same UTC calendar day, or null
+    /// when it must be filtered out.</summary>
+    public DateTimeOffset? ResolveCollectionTime(DateTimeOffset occurredAt)
+    {
+        if (Contains(occurredAt))
+        {
+            return occurredAt;
+        }
+
+        if (IncludeSameUtcDayBeforeStart
+            && occurredAt < PeriodStart
+            && occurredAt.UtcDateTime.Date == PeriodStart.UtcDateTime.Date)
+        {
+            return PeriodStart;
+        }
+
+        return null;
+    }
+
     public bool IsRepositoryExcluded(string repositoryFullName)
     {
         if (string.IsNullOrWhiteSpace(repositoryFullName))

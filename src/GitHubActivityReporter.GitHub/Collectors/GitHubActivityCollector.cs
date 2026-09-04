@@ -68,7 +68,7 @@ public sealed class GitHubActivityCollector : IActivityCollector
             .ToArray();
 
         var rawPrivate = deduplicated.Count(e => e.IsPrivateRepository);
-        var rawInWindow = deduplicated.Count(e => request.Contains(e.OccurredAt));
+        var rawInWindow = deduplicated.Count(e => request.ResolveCollectionTime(e.OccurredAt) is not null);
         _log.Debug($"Deduped events: {deduplicated.Length} total ({rawPrivate} private), {rawInWindow} within reporting window.");
         _log.Debug($"Collection request: public={request.CollectPublic}, private={request.CollectPrivate}, since={request.PeriodStart:u}, until={request.PeriodEnd:u}.");
 
@@ -85,7 +85,7 @@ public sealed class GitHubActivityCollector : IActivityCollector
             }
 
             GitHubRepositoryInfo? metadata = null;
-            if (!rawEvent.IsPrivateRepository && request.CollectPublic && request.Contains(rawEvent.OccurredAt))
+            if (!rawEvent.IsPrivateRepository && request.CollectPublic && request.ResolveCollectionTime(rawEvent.OccurredAt) is not null)
             {
                 if (!metadataCache.TryGetValue(rawEvent.RepositoryFullName, out metadata))
                 {

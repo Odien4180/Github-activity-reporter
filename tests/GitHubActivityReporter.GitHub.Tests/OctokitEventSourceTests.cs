@@ -248,6 +248,73 @@ public sealed class OctokitEventSourceTests
         Assert.Contains(log.Lines, line => line.Contains("status=403", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public async Task GetUserEventsAsync_keeps_events_from_earlier_in_the_same_utc_day()
+    {
+        // The daily workflow runs at 22:22 UTC (07:22 KST); activity from 09:00-22:21 KST
+        // sits before "since" and used to stop pagination before any of it was fetched.
+        var client = Substitute.For<IGitHubClient>();
+        var connection = Substitute.For<IApiConnection>();
+        var activities = Substitute.For<IActivitiesClient>();
+        var eventsClient = Substitute.For<IEventsClient>();
+        var organizations = Substitute.For<IOrganizationsClient>();
+        client.Activity.Returns(activities);
+        activities.Events.Returns(eventsClient);
+        client.Organization.Returns(organizations);
+
+        var start = DateTimeOffset.Parse("2026-09-02T22:22:30Z");
+        var earlierSameDay = DateTimeOffset.Parse("2026-09-02T01:00:00Z"); // 10:00 KST
+        connection.GetAll<Activity>(
+                Arg.Is<Uri>(uri => MatchesAuthenticatedUserEventsUri(uri)),
+                Arg.Any<ApiOptions>())
+            .Returns(
+                Task.FromResult<IReadOnlyList<Activity>>(
+                [
+                    new Activity(
+                        "PushEvent",
+                        false,
+                        CreateRepository("example-org/private-repository", isPrivate: true),
+                        null!,
+                        null!,
+                        earlierSameDay,
+                        "early-morning-push",
+                        null!)
+                ]),
+                Task.FromResult<IReadOnlyList<Activity>>(Array.Empty<Activity>()));
+        organizations.GetAllForCurrent(Arg.Any<ApiOptions>())
+            .Returns(Task.FromResult<IReadOnlyList<Organization>>(Array.Empty<Organization>()));
+
+        var source = new OctokitEventSource(client, apiConnection: connection);
+
+        var events = await source.GetUserEventsAsync("example-user", start, CancellationToken.None);
+
+        var commit = Assert.Single(events);
+        Assert.Equal(earlierSameDay, commit.OccurredAt);
+        Assert.True(commit.IsPrivateRepository);
+    }
+
+    [Fact]
+    public void ResolveFeedBoundary_extends_to_same_utc_day_start_capped_at_24_hours()
+    {
+        // The feed must keep pages that still contain events from the period's first
+        // UTC calendar day, while the extension stays within a 24h lookback.
+        var morning = DateTimeOffset.Parse("2026-09-02T06:00:00Z");
+        Assert.Equal(
+            DateTimeOffset.Parse("2026-09-01T06:00:00Z"),
+            OctokitEventSource.ResolveFeedBoundary(morning));
+
+        var lateEvening = DateTimeOffset.Parse("2026-09-02T23:30:00Z");
+        Assert.Equal(
+            DateTimeOffset.Parse("2026-09-01T23:30:00Z"),
+            OctokitEventSource.ResolveFeedBoundary(lateEvening));
+
+        // since → exactly midnight of its own UTC day still reaches back 24h.
+        var midnight = DateTimeOffset.Parse("2026-09-02T00:00:00Z");
+        Assert.Equal(
+            DateTimeOffset.Parse("2026-09-01T00:00:00Z"),
+            OctokitEventSource.ResolveFeedBoundary(midnight));
+    }
+
     private static Organization CreateOrganization(string login) => new(
         avatarUrl: string.Empty,
         bio: string.Empty,

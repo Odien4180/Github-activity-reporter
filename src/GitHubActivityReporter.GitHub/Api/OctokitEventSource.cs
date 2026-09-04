@@ -31,6 +31,9 @@ internal sealed class OctokitEventSource : IGitHubEventSource
         _log = log ?? NullReporterLog.Instance;
     }
 
+    /// <summary>How far past <c>since</c> a feed page may reach before pagination stops.</summary>
+    private static readonly TimeSpan MaxLookbackExtension = TimeSpan.FromHours(24);
+
     public async Task<IReadOnlyList<GitHubRawEvent>> GetUserEventsAsync(
         string userName,
         DateTimeOffset since,
@@ -41,12 +44,21 @@ internal sealed class OctokitEventSource : IGitHubEventSource
 
         var results = new List<GitHubRawEvent>();
 
-        if (!await TryAppendAuthenticatedUserActivitiesAsync(results, since, cancellationToken).ConfigureAwait(false))
+        // The events API only serves the latest ~300 events and cannot be paged by time.
+        // A strict rolling "since" boundary therefore drops activity that happened earlier
+        // on the same day whenever the daily report runs after that activity (e.g. a 09:00
+        // KST run misses everything before 09:00 KST the previous day). Keep reading while
+        // the oldest event still belongs to the same UTC calendar day, capped at 24h of
+        // extra lookback; the collector clamps those events to the period start.
+        var feedBoundary = ResolveFeedBoundary(since);
+
+        if (!await TryAppendAuthenticatedUserActivitiesAsync(results, since, feedBoundary, cancellationToken).ConfigureAwait(false))
         {
             LastDiagnostics ??= "authenticated-user feed unavailable; used username-scoped fallback feed.";
             await AppendActivitiesAsync(
                     results,
                     since,
+                    feedBoundary,
                     options => _client.Activity.Events.GetAllUserPerformed(userName, options),
                     cancellationToken,
                     "user-performed")
@@ -58,6 +70,7 @@ internal sealed class OctokitEventSource : IGitHubEventSource
             await AppendActivitiesAsync(
                     results,
                     since,
+                    feedBoundary,
                     options => _client.Activity.Events.GetAllForAnOrganization(userName, organization, options),
                     cancellationToken,
                     $"org:{organization}")
@@ -74,6 +87,7 @@ internal sealed class OctokitEventSource : IGitHubEventSource
     private async Task<bool> TryAppendAuthenticatedUserActivitiesAsync(
         List<GitHubRawEvent> results,
         DateTimeOffset since,
+        DateTimeOffset feedBoundary,
         CancellationToken cancellationToken)
     {
         try
@@ -83,6 +97,7 @@ internal sealed class OctokitEventSource : IGitHubEventSource
             await AppendActivitiesAsync(
                     results,
                     since,
+                    feedBoundary,
                     options => _apiConnection.GetAll<Activity>(new Uri(AuthenticatedUserEventsEndpoint, UriKind.Relative), options),
                     cancellationToken,
                     "authenticated-user")
@@ -100,9 +115,18 @@ internal sealed class OctokitEventSource : IGitHubEventSource
         }
     }
 
+    internal static DateTimeOffset ResolveFeedBoundary(DateTimeOffset since)
+    {
+        var utcSince = since.UtcDateTime;
+        var previousDayStart = new DateTimeOffset(utcSince.Year, utcSince.Month, utcSince.Day, 0, 0, 0, TimeSpan.Zero) - TimeSpan.FromDays(1);
+        var extended = since - MaxLookbackExtension;
+        return extended > previousDayStart ? extended : previousDayStart;
+    }
+
     private async Task AppendActivitiesAsync(
         List<GitHubRawEvent> results,
         DateTimeOffset since,
+        DateTimeOffset feedBoundary,
         Func<ApiOptions, Task<IReadOnlyList<Activity>>> activityReader,
         CancellationToken cancellationToken,
         string feedLabel = "feed")
@@ -142,7 +166,7 @@ internal sealed class OctokitEventSource : IGitHubEventSource
             }
 
             // The feed is ordered newest first, so we can stop as soon as we passed the window.
-            if (activities[^1].CreatedAt < since)
+            if (activities[^1].CreatedAt < feedBoundary)
             {
                 break;
             }

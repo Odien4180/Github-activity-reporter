@@ -41,6 +41,60 @@ public sealed class ActivityClassificationTests
     };
 
     [Fact]
+    public void Same_utc_day_events_before_period_start_are_clamped_to_period_start()
+    {
+        // Mirrors the production runner: a daily report at 22:22 UTC still counts
+        // activity from earlier that day (clamped to the period start).
+        var request = new CollectionRequest
+        {
+            UserName = "example-user",
+            PeriodStart = new DateTimeOffset(2026, 9, 2, 22, 22, 30, TimeSpan.Zero),
+            PeriodEnd = new DateTimeOffset(2026, 9, 3, 22, 22, 30, TimeSpan.Zero),
+            IncludeSameUtcDayBeforeStart = true
+        };
+        var builder = new CollectedActivityBuilder(new InMemoryPrivateTermRegistry());
+
+        var earlierSameDay = new DateTimeOffset(2026, 9, 2, 10, 0, 0, TimeSpan.Zero);
+        var visibility = builder.Add(Input(isPrivate: true, occurredAt: earlierSameDay), request);
+
+        Assert.Equal(ActivityVisibility.Private, visibility);
+        var collected = builder.Build();
+        var privateEvent = Assert.Single(collected.PrivateEvents);
+        Assert.Equal(request.PeriodStart, privateEvent.OccurredAt);
+    }
+
+    [Fact]
+    public void Events_before_same_utc_day_are_dropped_even_when_clamping_is_enabled()
+    {
+        var request = new CollectionRequest
+        {
+            UserName = "example-user",
+            PeriodStart = new DateTimeOffset(2026, 9, 2, 22, 22, 30, TimeSpan.Zero),
+            PeriodEnd = new DateTimeOffset(2026, 9, 3, 22, 22, 30, TimeSpan.Zero),
+            IncludeSameUtcDayBeforeStart = true
+        };
+        var builder = new CollectedActivityBuilder(new InMemoryPrivateTermRegistry());
+
+        var previousDay = new DateTimeOffset(2026, 9, 1, 23, 59, 59, TimeSpan.Zero);
+        var visibility = builder.Add(Input(isPrivate: true, occurredAt: previousDay), request);
+
+        Assert.Null(visibility);
+        Assert.Equal(0, builder.PrivateEventCount);
+    }
+
+    [Fact]
+    public void Same_utc_day_clamping_is_disabled_by_default()
+    {
+        var builder = new CollectedActivityBuilder(new InMemoryPrivateTermRegistry());
+
+        var beforeStart = Start.AddHours(-1);
+        var visibility = builder.Add(Input(isPrivate: true, occurredAt: beforeStart), Request());
+
+        Assert.Null(visibility);
+        Assert.Equal(0, builder.PrivateEventCount);
+    }
+
+    [Fact]
     public void Public_events_are_classified_as_public()
     {
         var builder = new CollectedActivityBuilder(new InMemoryPrivateTermRegistry());
