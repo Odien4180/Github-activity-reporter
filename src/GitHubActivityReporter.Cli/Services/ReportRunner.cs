@@ -97,7 +97,10 @@ public sealed class ReportRunner
             CollectPrivate = configuration.Collection.Private.Enabled,
             PublicEventTypes = configuration.Collection.Public.EventTypes.ToActivityTypes(),
             PrivateEventTypes = configuration.Collection.Private.EventTypes.ToActivityTypes(),
-            ExcludedRepositoryFullNames = BuildExcludedRepositories(configuration)
+            ExcludedRepositoryFullNames = BuildExcludedRepositories(configuration),
+            // The events API only exposes the latest ~300 events, so keep activity that
+            // happened earlier on the same UTC day (clamped to the period start).
+            IncludeSameUtcDayBeforeStart = true
         };
 
         var collected = await _collector.CollectAsync(request, cancellationToken).ConfigureAwait(false);

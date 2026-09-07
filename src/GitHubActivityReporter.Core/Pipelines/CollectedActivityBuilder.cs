@@ -30,10 +30,13 @@ public sealed class CollectedActivityBuilder
         ArgumentNullException.ThrowIfNull(input);
         ArgumentNullException.ThrowIfNull(request);
 
-        if (!request.Contains(input.OccurredAt))
+        var collectedAt = request.ResolveCollectionTime(input.OccurredAt);
+        if (collectedAt is null)
         {
             return null;
         }
+
+        input = input with { OccurredAt = collectedAt.Value };
 
         if (request.IsRepositoryExcluded(input.RepositoryFullName))
         {
